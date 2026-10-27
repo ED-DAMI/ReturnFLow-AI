@@ -1,0 +1,219 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                  xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+                  xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+                  xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+                  id="Definitions_ReturnFlow"
+                  targetNamespace="https://returnflow.ai/bpmn">
+  <bpmn:message id="Message_ReturnRequest" name="Demande de retour" />
+  <bpmn:message id="Message_MissingInformation" name="Informations complémentaires" />
+
+  <bpmn:process id="returnflow-as-is" name="ReturnFlow AI - Processus AS-IS" isExecutable="false">
+    <bpmn:laneSet id="LaneSet_ReturnFlow">
+      <bpmn:lane id="Lane_AgentSAV" name="Agent SAV">
+        <bpmn:flowNodeRef>StartEvent_ReturnReceived</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_RecordRequest</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Gateway_InformationComplete</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_RequestInformation</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Event_WaitForInformation</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_CompleteFile</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_SearchOrder</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Gateway_OrderFound</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_InformOrderMissing</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>EndEvent_OrderMissing</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_ReviewRequest</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_CheckReturnConditions</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Gateway_ReturnEligible</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_InformRefusal</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>EndEvent_Refused</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_ChooseSolution</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_ValidateDecision</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_OrganizeReturn</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_InformCustomer</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>EndEvent_Accepted</bpmn:flowNodeRef>
+      </bpmn:lane>
+    </bpmn:laneSet>
+
+    <bpmn:startEvent id="StartEvent_ReturnReceived" name="Demande de retour reçue">
+      <bpmn:messageEventDefinition id="MessageStart_ReturnRequest" messageRef="Message_ReturnRequest" />
+    </bpmn:startEvent>
+    <bpmn:userTask id="Task_RecordRequest" name="Enregistrer la demande" />
+    <bpmn:exclusiveGateway id="Gateway_InformationComplete" name="Informations complètes ?" default="Flow_InformationMissing" />
+    <bpmn:userTask id="Task_RequestInformation" name="Demander les informations manquantes" />
+    <bpmn:intermediateCatchEvent id="Event_WaitForInformation" name="Informations reçues">
+      <bpmn:messageEventDefinition id="MessageCatch_MissingInformation" messageRef="Message_MissingInformation" />
+    </bpmn:intermediateCatchEvent>
+    <bpmn:userTask id="Task_CompleteFile" name="Compléter le dossier" />
+    <bpmn:userTask id="Task_SearchOrder" name="Rechercher la commande" />
+    <bpmn:exclusiveGateway id="Gateway_OrderFound" name="Commande trouvée ?" default="Flow_OrderMissing" />
+    <bpmn:userTask id="Task_InformOrderMissing" name="Informer le client : commande introuvable" />
+    <bpmn:endEvent id="EndEvent_OrderMissing" name="Dossier clôturé - commande introuvable" />
+    <bpmn:userTask id="Task_ReviewRequest" name="Examiner le motif et l'état du produit" />
+    <bpmn:userTask id="Task_CheckReturnConditions" name="Vérifier manuellement les conditions" />
+    <bpmn:exclusiveGateway id="Gateway_ReturnEligible" name="Retour accepté ?" default="Flow_ReturnRefused" />
+    <bpmn:userTask id="Task_InformRefusal" name="Informer le client du refus" />
+    <bpmn:endEvent id="EndEvent_Refused" name="Dossier clôturé - refus" />
+    <bpmn:userTask id="Task_ChooseSolution" name="Choisir une solution : remboursement, échange ou réparation" />
+    <bpmn:userTask id="Task_ValidateDecision" name="Valider la décision" />
+    <bpmn:userTask id="Task_OrganizeReturn" name="Organiser le retour" />
+    <bpmn:userTask id="Task_InformCustomer" name="Informer le client de la solution" />
+    <bpmn:endEvent id="EndEvent_Accepted" name="Dossier traité" />
+
+    <bpmn:sequenceFlow id="Flow_Start_Record" sourceRef="StartEvent_ReturnReceived" targetRef="Task_RecordRequest" />
+    <bpmn:sequenceFlow id="Flow_Record_InformationGateway" sourceRef="Task_RecordRequest" targetRef="Gateway_InformationComplete" />
+    <bpmn:sequenceFlow id="Flow_InformationComplete" name="Oui" sourceRef="Gateway_InformationComplete" targetRef="Task_SearchOrder" />
+    <bpmn:sequenceFlow id="Flow_InformationMissing" name="Non" sourceRef="Gateway_InformationComplete" targetRef="Task_RequestInformation" />
+    <bpmn:sequenceFlow id="Flow_Request_Wait" sourceRef="Task_RequestInformation" targetRef="Event_WaitForInformation" />
+    <bpmn:sequenceFlow id="Flow_Wait_CompleteFile" sourceRef="Event_WaitForInformation" targetRef="Task_CompleteFile" />
+    <bpmn:sequenceFlow id="Flow_CompleteFile_InformationGateway" sourceRef="Task_CompleteFile" targetRef="Gateway_InformationComplete" />
+    <bpmn:sequenceFlow id="Flow_Search_OrderGateway" sourceRef="Task_SearchOrder" targetRef="Gateway_OrderFound" />
+    <bpmn:sequenceFlow id="Flow_OrderFound" name="Oui" sourceRef="Gateway_OrderFound" targetRef="Task_ReviewRequest" />
+    <bpmn:sequenceFlow id="Flow_OrderMissing" name="Non" sourceRef="Gateway_OrderFound" targetRef="Task_InformOrderMissing" />
+    <bpmn:sequenceFlow id="Flow_OrderMissing_End" sourceRef="Task_InformOrderMissing" targetRef="EndEvent_OrderMissing" />
+    <bpmn:sequenceFlow id="Flow_Review_Check" sourceRef="Task_ReviewRequest" targetRef="Task_CheckReturnConditions" />
+    <bpmn:sequenceFlow id="Flow_Check_EligibilityGateway" sourceRef="Task_CheckReturnConditions" targetRef="Gateway_ReturnEligible" />
+    <bpmn:sequenceFlow id="Flow_ReturnAccepted" name="Oui" sourceRef="Gateway_ReturnEligible" targetRef="Task_ChooseSolution" />
+    <bpmn:sequenceFlow id="Flow_ReturnRefused" name="Non" sourceRef="Gateway_ReturnEligible" targetRef="Task_InformRefusal" />
+    <bpmn:sequenceFlow id="Flow_Refusal_End" sourceRef="Task_InformRefusal" targetRef="EndEvent_Refused" />
+    <bpmn:sequenceFlow id="Flow_Choose_Validate" sourceRef="Task_ChooseSolution" targetRef="Task_ValidateDecision" />
+    <bpmn:sequenceFlow id="Flow_Validate_Organize" sourceRef="Task_ValidateDecision" targetRef="Task_OrganizeReturn" />
+    <bpmn:sequenceFlow id="Flow_Organize_Inform" sourceRef="Task_OrganizeReturn" targetRef="Task_InformCustomer" />
+    <bpmn:sequenceFlow id="Flow_Inform_AcceptedEnd" sourceRef="Task_InformCustomer" targetRef="EndEvent_Accepted" />
+  </bpmn:process>
+
+  <bpmn:collaboration id="Collaboration_ReturnFlow">
+    <bpmn:participant id="Participant_ReturnFlow" name="ReturnFlow AI - AS-IS" processRef="returnflow-as-is" />
+  </bpmn:collaboration>
+
+  <bpmndi:BPMNDiagram id="BPMNDiagram_ReturnFlow">
+    <bpmndi:BPMNPlane id="BPMNPlane_ReturnFlow" bpmnElement="Collaboration_ReturnFlow">
+      <bpmndi:BPMNShape id="Participant_ReturnFlow_di" bpmnElement="Participant_ReturnFlow" isHorizontal="true">
+        <dc:Bounds x="60" y="70" width="2050" height="480" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Lane_AgentSAV_di" bpmnElement="Lane_AgentSAV" isHorizontal="true">
+        <dc:Bounds x="90" y="70" width="2020" height="480" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="StartEvent_ReturnReceived_di" bpmnElement="StartEvent_ReturnReceived">
+        <dc:Bounds x="120" y="197" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_RecordRequest_di" bpmnElement="Task_RecordRequest">
+        <dc:Bounds x="180" y="175" width="135" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_InformationComplete_di" bpmnElement="Gateway_InformationComplete" isMarkerVisible="true">
+        <dc:Bounds x="345" y="190" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_RequestInformation_di" bpmnElement="Task_RequestInformation">
+        <dc:Bounds x="315" y="330" width="155" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Event_WaitForInformation_di" bpmnElement="Event_WaitForInformation">
+        <dc:Bounds x="520" y="352" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_CompleteFile_di" bpmnElement="Task_CompleteFile">
+        <dc:Bounds x="595" y="330" width="150" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_SearchOrder_di" bpmnElement="Task_SearchOrder">
+        <dc:Bounds x="435" y="175" width="130" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_OrderFound_di" bpmnElement="Gateway_OrderFound" isMarkerVisible="true">
+        <dc:Bounds x="600" y="190" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_InformOrderMissing_di" bpmnElement="Task_InformOrderMissing">
+        <dc:Bounds x="560" y="435" width="160" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="EndEvent_OrderMissing_di" bpmnElement="EndEvent_OrderMissing">
+        <dc:Bounds x="770" y="457" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_ReviewRequest_di" bpmnElement="Task_ReviewRequest">
+        <dc:Bounds x="690" y="175" width="145" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_CheckReturnConditions_di" bpmnElement="Task_CheckReturnConditions">
+        <dc:Bounds x="865" y="175" width="150" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_ReturnEligible_di" bpmnElement="Gateway_ReturnEligible" isMarkerVisible="true">
+        <dc:Bounds x="1050" y="190" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_InformRefusal_di" bpmnElement="Task_InformRefusal">
+        <dc:Bounds x="1010" y="330" width="140" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="EndEvent_Refused_di" bpmnElement="EndEvent_Refused">
+        <dc:Bounds x="1190" y="352" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_ChooseSolution_di" bpmnElement="Task_ChooseSolution">
+        <dc:Bounds x="1170" y="175" width="165" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_ValidateDecision_di" bpmnElement="Task_ValidateDecision">
+        <dc:Bounds x="1370" y="175" width="135" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_OrganizeReturn_di" bpmnElement="Task_OrganizeReturn">
+        <dc:Bounds x="1540" y="175" width="135" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_InformCustomer_di" bpmnElement="Task_InformCustomer">
+        <dc:Bounds x="1710" y="175" width="155" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="EndEvent_Accepted_di" bpmnElement="EndEvent_Accepted">
+        <dc:Bounds x="1940" y="197" width="36" height="36" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNEdge id="Flow_Start_Record_di" bpmnElement="Flow_Start_Record">
+        <di:waypoint x="156" y="215" /><di:waypoint x="180" y="215" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_Record_InformationGateway_di" bpmnElement="Flow_Record_InformationGateway">
+        <di:waypoint x="315" y="215" /><di:waypoint x="345" y="215" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_InformationComplete_di" bpmnElement="Flow_InformationComplete">
+        <di:waypoint x="395" y="215" /><di:waypoint x="435" y="215" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_InformationMissing_di" bpmnElement="Flow_InformationMissing">
+        <di:waypoint x="370" y="240" /><di:waypoint x="370" y="285" /><di:waypoint x="392" y="285" /><di:waypoint x="392" y="330" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_Request_Wait_di" bpmnElement="Flow_Request_Wait">
+        <di:waypoint x="470" y="370" /><di:waypoint x="520" y="370" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_Wait_CompleteFile_di" bpmnElement="Flow_Wait_CompleteFile">
+        <di:waypoint x="556" y="370" /><di:waypoint x="595" y="370" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_CompleteFile_InformationGateway_di" bpmnElement="Flow_CompleteFile_InformationGateway">
+        <di:waypoint x="595" y="370" /><di:waypoint x="570" y="370" /><di:waypoint x="570" y="285" /><di:waypoint x="370" y="285" /><di:waypoint x="370" y="240" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_Search_OrderGateway_di" bpmnElement="Flow_Search_OrderGateway">
+        <di:waypoint x="565" y="215" /><di:waypoint x="600" y="215" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_OrderFound_di" bpmnElement="Flow_OrderFound">
+        <di:waypoint x="650" y="215" /><di:waypoint x="690" y="215" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_OrderMissing_di" bpmnElement="Flow_OrderMissing">
+        <di:waypoint x="625" y="240" /><di:waypoint x="625" y="300" /><di:waypoint x="640" y="300" /><di:waypoint x="640" y="435" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_OrderMissing_End_di" bpmnElement="Flow_OrderMissing_End">
+        <di:waypoint x="720" y="475" /><di:waypoint x="770" y="475" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_Review_Check_di" bpmnElement="Flow_Review_Check">
+        <di:waypoint x="835" y="215" /><di:waypoint x="865" y="215" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_Check_EligibilityGateway_di" bpmnElement="Flow_Check_EligibilityGateway">
+        <di:waypoint x="1015" y="215" /><di:waypoint x="1050" y="215" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_ReturnAccepted_di" bpmnElement="Flow_ReturnAccepted">
+        <di:waypoint x="1100" y="215" /><di:waypoint x="1170" y="215" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_ReturnRefused_di" bpmnElement="Flow_ReturnRefused">
+        <di:waypoint x="1075" y="240" /><di:waypoint x="1075" y="330" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_Refusal_End_di" bpmnElement="Flow_Refusal_End">
+        <di:waypoint x="1150" y="370" /><di:waypoint x="1190" y="370" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_Choose_Validate_di" bpmnElement="Flow_Choose_Validate">
+        <di:waypoint x="1335" y="215" /><di:waypoint x="1370" y="215" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_Validate_Organize_di" bpmnElement="Flow_Validate_Organize">
+        <di:waypoint x="1505" y="215" /><di:waypoint x="1540" y="215" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_Organize_Inform_di" bpmnElement="Flow_Organize_Inform">
+        <di:waypoint x="1675" y="215" /><di:waypoint x="1710" y="215" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_Inform_AcceptedEnd_di" bpmnElement="Flow_Inform_AcceptedEnd">
+        <di:waypoint x="1865" y="215" /><di:waypoint x="1940" y="215" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

@@ -8,6 +8,18 @@ Binôme : Israe Yaaya & Mohamed · Encadrement : Mme N. AIT MANSOUR · Remise : 
 
 ---
 
+## Avancement J1 - cadrage et AS-IS
+
+- [x] Structure locale alignée sur les couches du projet.
+- [x] Cadrage métier et scénarios initiaux dans `docs/cadrage_metier.md`.
+- [x] BPMN AS-IS manuel dans `camunda/returnflow_as_is.bpmn`.
+- [ ] Confirmer avec l'équipe les règles proposées, notamment le délai de retour et l'exception de garantie.
+- [ ] Revoir les livrables J1 avant le premier commit.
+
+Les règles proposées dans le cadrage sont des hypothèses de simulation, pas encore une politique métier approuvée. Le BPMN AS-IS ne contient pas de tâche IA.
+
+---
+
 ## 1. Présentation
 
 ReturnFlow AI est un mini-système SAV intelligent pour la gestion des retours de produits :
@@ -77,6 +89,7 @@ ReturnFlow-AI/
 │   └── outputs/                   Graphiques et résultats
 ├── docs/
 │   ├── architecture.png
+│   ├── cadrage_metier.md         Cadrage métier et règles proposées (J1)
 │   ├── demo_scenarios.md
 │   └── presentation.pdf
 ├── requirements.txt
@@ -94,8 +107,8 @@ ReturnFlow-AI/
 ## 6. Installation
 
 ```powershell
-git clone https://github.com/<utilisateur>/ReturnFlow-AI.git
-cd ReturnFlow-AI
+git clone https://github.com/ED-DAMI/ReturnFLow-AI.git
+cd ReturnFLow-AI
 
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
