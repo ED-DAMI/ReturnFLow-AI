@@ -1,0 +1,20 @@
+field,meaning_fr,source
+returnOrderNo,Numero de retour,SHEIN return-order/details
+returnOrderStatus,Statut du retour,SHEIN return-order/details
+orderNo,Numero de commande client,SHEIN return-order/details
+requestReturnTime,Date de demande de retour,SHEIN return-order/details
+allocateTime,Date d'emission du retour,SHEIN return-order/details
+lastUpdateTime,Derniere mise a jour,SHEIN return-order/details
+sellerSignedTime,Date de reception vendeur,SHEIN return-order/details
+cancelTime,Date d'annulation,SHEIN return-order/details
+completedTime,Date d'achevement,SHEIN return-order/details
+shippingCode,Code logistique,SHEIN return-order/details
+platformExpressNo,Tracking plateforme,SHEIN return-order/details
+memberExpressNo,Tracking fourni par acheteur,SHEIN return-order/details
+expressCompanyName,Transporteur,SHEIN return-order/details
+noReturnGoodsSign,Indique remboursement sans retour possible,SHEIN return-order/details
+goodsSn,Identifiant produit vendeur,SHEIN return-order/details
+skuSn,SKU vendeur,SHEIN return-order/details
+goodsTitle,Titre produit,SHEIN return-order/details
+goodsStatus,Statut du produit retourne,SHEIN return-order/details
+currency,Devise,SHEIN return-order/details

@@ -1,0 +1,17 @@
+status_code,status_en,status_fr
+1,Pending merchant processing,En attente traitement marchand
+2,Pending Customer Service Review,En attente revue service client
+3,Awaiting user selection,En attente choix utilisateur
+4,Awaiting user return,En attente retour utilisateur
+5,Pending Handover,En attente de remise
+6,Delivered,Livre
+7,Return Exception Awaiting Platform Review,Exception retour en attente revue plateforme
+8,Awaiting SHEIN Warehouse Transit,En attente transit entrepot SHEIN
+9,Agree to refund,Remboursement accepte
+10,Dispute in progress,Litige en cours
+11,Closed,Ferme
+12,Completed,Termine
+13,Cancelled,Annule
+14,To be reissued,A reexpedier
+15,Awaiting seller to upload Shipping Label,En attente etiquette retour vendeur
+16,Awaiting customer feedback,En attente retour client
