@@ -1,10 +1,4 @@
 .venv/
-<<<<<<< HEAD
-issues.bash
-.vscode 
-env 
-
-=======
 venv/
 __pycache__/
 *.py[cod]
@@ -37,4 +31,3 @@ desktop.ini
 # Generated process-mining outputs; keep the directory marker
 process_mining/outputs/*
 !process_mining/outputs/.gitkeep
->>>>>>> israe
