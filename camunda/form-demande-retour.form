@@ -1,0 +1,122 @@
+{
+  "schemaVersion": 11,
+  "type": "default",
+  "id": "form-demande-retour",
+  "components": [
+    {
+      "type": "text",
+      "id": "form-demande-retour_text_1",
+      "text": "# Demande de retour\nRenseignez la commande et l'article concernés. *(Données fictives uniquement.)*"
+    },
+    {
+      "label": "Numéro de commande",
+      "type": "textfield",
+      "id": "form-demande-retour_order_id_2",
+      "key": "order_id",
+      "description": "Exemple : CMD-1001",
+      "validate": {
+        "required": true
+      }
+    },
+    {
+      "label": "Identifiant de la ligne d'article",
+      "type": "textfield",
+      "id": "form-demande-retour_order_item_id_3",
+      "key": "order_item_id",
+      "description": "Exemple : CMD-1001-L1",
+      "validate": {
+        "required": true
+      }
+    },
+    {
+      "label": "Quantité à retourner",
+      "type": "number",
+      "id": "form-demande-retour_return_quantity_4",
+      "key": "return_quantity",
+      "validate": {
+        "required": true,
+        "min": 1
+      }
+    },
+    {
+      "label": "Motif du retour",
+      "type": "select",
+      "id": "form-demande-retour_return_reason_5",
+      "key": "return_reason",
+      "validate": {
+        "required": true
+      },
+      "values": [
+        {
+          "label": "Produit défectueux",
+          "value": "defective_product"
+        },
+        {
+          "label": "Mauvais article reçu",
+          "value": "wrong_item"
+        },
+        {
+          "label": "Endommagé pendant le transport",
+          "value": "damaged_in_transit"
+        },
+        {
+          "label": "Non conforme à la description",
+          "value": "not_as_described"
+        },
+        {
+          "label": "Changement d'avis",
+          "value": "changed_mind"
+        },
+        {
+          "label": "Autre",
+          "value": "other"
+        }
+      ]
+    },
+    {
+      "label": "Résolution souhaitée",
+      "type": "select",
+      "id": "form-demande-retour_requested_resolution_6",
+      "key": "requested_resolution",
+      "validate": {
+        "required": true
+      },
+      "values": [
+        {
+          "label": "Remboursement",
+          "value": "refund"
+        },
+        {
+          "label": "Échange",
+          "value": "exchange"
+        },
+        {
+          "label": "Réparation",
+          "value": "repair"
+        }
+      ]
+    },
+    {
+      "label": "Description du problème",
+      "type": "textarea",
+      "id": "form-demande-retour_description_7",
+      "key": "description",
+      "validate": {
+        "required": true
+      }
+    },
+    {
+      "label": "Référence de pièce justificative (fictive)",
+      "type": "textfield",
+      "id": "form-demande-retour_attachment_reference_8",
+      "key": "attachment_reference",
+      "description": "Optionnel. Exemple : PHOTO-001"
+    }
+  ],
+  "executionPlatform": "Camunda Cloud",
+  "executionPlatformVersion": "8.5.0",
+  "exporter": {
+    "name": "Camunda Modeler",
+    "version": "5.22.0"
+  }
+}
