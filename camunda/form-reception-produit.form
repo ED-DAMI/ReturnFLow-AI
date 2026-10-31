@@ -1,0 +1,68 @@
+{
+  "schemaVersion": 11,
+  "type": "default",
+  "id": "form-reception-produit",
+  "components": [
+    {
+      "type": "text",
+      "id": "form-reception-produit_text_1",
+      "text": "# Réception du produit (agent entrepôt)\nEnregistrez la réception du colis retourné. *(Simulée.)*"
+    },
+    {
+      "label": "Identifiant RMA",
+      "type": "textfield",
+      "id": "form-reception-produit_return_id_2",
+      "key": "return_id",
+      "readonly": true
+    },
+    {
+      "label": "Produit attendu",
+      "type": "textfield",
+      "id": "form-reception-produit_product_name_3",
+      "key": "product_name",
+      "readonly": true
+    },
+    {
+      "label": "Quantité attendue",
+      "type": "number",
+      "id": "form-reception-produit_return_quantity_4",
+      "key": "return_quantity",
+      "readonly": true
+    },
+    {
+      "label": "Date de réception",
+      "type": "datetime",
+      "id": "form-reception-produit_received_at_5",
+      "key": "received_at",
+      "validate": {
+        "required": true
+      },
+      "subtype": "datetime",
+      "dateLabel": "Date",
+      "timeLabel": "Heure",
+      "use24h": true
+    },
+    {
+      "label": "Quantité reçue",
+      "type": "number",
+      "id": "form-reception-produit_received_quantity_6",
+      "key": "received_quantity",
+      "validate": {
+        "required": true,
+        "min": 0
+      }
+    },
+    {
+      "label": "Commentaire",
+      "type": "textarea",
+      "id": "form-reception-produit_reception_comment_7",
+      "key": "reception_comment"
+    }
+  ],
+  "executionPlatform": "Camunda Cloud",
+  "executionPlatformVersion": "8.5.0",
+  "exporter": {
+    "name": "Camunda Modeler",
+    "version": "5.22.0"
+  }
+}
