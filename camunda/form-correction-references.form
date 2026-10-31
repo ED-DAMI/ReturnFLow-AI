@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 11,
+  "type": "default",
+  "id": "form-correction-references",
+  "components": [
+    {
+      "type": "text",
+      "id": "form-correction-references-title",
+      "text": "# Correction des références de commande"
+    },
+    {
+      "label": "Numéro de commande corrigé",
+      "type": "textfield",
+      "id": "form-correction-references-order_id",
+      "key": "order_id"
+    },
+    {
+      "label": "Ligne d’article corrigée",
+      "type": "textfield",
+      "id": "form-correction-references-order_item_id",
+      "key": "order_item_id"
+    },
+    {
+      "label": "Le client a fourni une correction à rechercher",
+      "type": "checkbox",
+      "id": "form-correction-references-correctionProvided",
+      "key": "correctionProvided",
+      "description": "Laisser décoché si le client ne peut pas corriger les références.",
+      "defaultValue": false
+    }
+  ],
+  "executionPlatform": "Camunda Cloud",
+  "executionPlatformVersion": "8.10.0",
+  "exporter": {
+    "name": "Camunda Modeler",
+    "version": "5.52.0"
+  }
+}

@@ -1,0 +1,75 @@
+{
+  "schemaVersion": 11,
+  "type": "default",
+  "id": "form-escalade-sav",
+  "components": [
+    {
+      "type": "text",
+      "id": "form-escalade-sav-title",
+      "text": "# Escalade SLA — responsable SAV"
+    },
+    {
+      "label": "Motif de l’escalade",
+      "type": "textarea",
+      "id": "form-escalade-sav-escalation_reason",
+      "key": "escalation_reason",
+      "readonly": true
+    },
+    {
+      "label": "Seuil SLA en heures",
+      "type": "number",
+      "id": "form-escalade-sav-sla_hours",
+      "key": "sla_hours",
+      "readonly": true
+    },
+    {
+      "label": "Action de suivi",
+      "type": "select",
+      "id": "form-escalade-sav-follow_up_action",
+      "key": "follow_up_action",
+      "values": [
+        {
+          "label": "Relancer l’agent",
+          "value": "remind_agent"
+        },
+        {
+          "label": "Réattribuer le dossier",
+          "value": "reassign_case"
+        },
+        {
+          "label": "Prendre en charge",
+          "value": "take_over"
+        },
+        {
+          "label": "Autre",
+          "value": "other"
+        }
+      ],
+      "validate": {
+        "required": true
+      }
+    },
+    {
+      "label": "Note du responsable SAV",
+      "type": "textarea",
+      "id": "form-escalade-sav-supervisor_note",
+      "key": "supervisor_note",
+      "validate": {
+        "required": true
+      }
+    },
+    {
+      "label": "Escalade prise en compte",
+      "type": "checkbox",
+      "id": "form-escalade-sav-escalationAcknowledged",
+      "key": "escalationAcknowledged",
+      "defaultValue": true
+    }
+  ],
+  "executionPlatform": "Camunda Cloud",
+  "executionPlatformVersion": "8.10.0",
+  "exporter": {
+    "name": "Camunda Modeler",
+    "version": "5.52.0"
+  }
+}

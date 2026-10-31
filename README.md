@@ -1,236 +1,873 @@
 # ReturnFlow AI
 
-**Service après-vente : retour d'un produit**
+**Gestion des retours de vêtements — cas d’étude académique inspiré des politiques publiques de SHEIN Maroc**  
 BPMN · Process Mining · Workflow AI
 
-Projet du module *BPMN, Process Mining & Workflow AI* (IDSI 3)
-Binôme : Israe Yaaya & Mohamed · Encadrement : Mme N. AIT MANSOUR · Remise : jeudi 5 novembre 2026
+Projet du module *BPMN, Process Mining & Workflow AI* — IDSI 3
+
+- **Binôme :** Israe Yaaya & Mohamed
+- **Encadrement :** Mme N. AIT MANSOUR
+- **Remise :** jeudi 5 novembre 2026
+
+> **Statut :** ce document décrit le périmètre cible du projet. Les fonctionnalités sont à considérer comme prévues jusqu’à leur implémentation et leur validation.
+>
+> Le processus interne de SHEIN n’est pas reproduit et aucune donnée interne n’est utilisée. Les données, transports et opérations de remboursement sont simulés; aucun paiement réel n’est effectué.
 
 ---
 
 ## 1. Présentation
 
-ReturnFlow AI est un mini-système SAV intelligent pour la gestion des retours de produits :
+ReturnFlow AI est un cas d’étude académique de gestion des retours de vêtements, inspiré des politiques publiques de SHEIN Maroc. Il ne décrit pas le processus interne réel de SHEIN.
 
-- **BPMN** : le processus (AS-IS puis TO-BE) est modélisé et exécuté sur **Camunda 8**.
-- **Process Mining** : un event log simulé est analysé avec **PM4Py** (variantes, goulots, conformité).
-- **Workflow AI** : un LLM (**LangChain + OpenRouter**) intervient dans des tâches ciblées : classification du motif, résumé, suggestion et rédaction de la réponse client.
+Le projet combine :
 
-> **Principe directeur** : Camunda garde le contrôle du chemin et des règles. L'IA comprend, résume, propose et rédige. La décision finale reste à l'agent SAV (human-in-the-loop).
+- **BPMN** : processus manuel de référence AS-IS et processus cible TO-BE sur Camunda 8.10.
+- **Process Mining** : analyse d’event logs simulés avec PM4Py.
+- **Workflow AI** : RAG sur PostgreSQL + pgvector pour retrouver les politiques; LLM via LangChain/OpenRouter pour classifier et extraire les faits; règles déterministes/DMN pour décider.
 
-## 2. Architecture
+### Principe directeur
 
+> Camunda orchestre. Le RAG retrouve les sources. Le LLM comprend la demande et extrait des faits. Les règles déterministes évaluent l’éligibilité. L’agent SAV valide la suite.
+
+Deux décisions sont distinguées :
+
+1. **Valider la proposition et le besoin d’un retour physique**, après l’évaluation des règles.
+2. **Confirmer le mode de traitement**, après réception et inspection si un retour physique est requis.
+
+La recommandation du LLM ne décide jamais seule de l’éligibilité.
+
+---
+
+## 2. Objectifs
+
+- Modéliser un processus SAV complet.
+- Automatiser les contrôles répétitifs.
+- Conserver une validation humaine.
+- Gérer les informations manquantes.
+- Prévoir un fallback en cas d’indisponibilité de l’IA.
+- Tracer les décisions et les opérations.
+- Mesurer les délais et les goulots d’étranglement.
+- Comparer les processus AS-IS et TO-BE sur des données simulées.
+
+---
+
+## 3. Périmètre
+
+### Fonctionnalités prévues
+
+- Saisie de la demande de retour.
+- Recherche de la commande et de l’article concerné.
+- Vérification des informations et correction des références.
+- Demande de complément.
+- Classification du motif et recherche de politiques via RAG.
+- Extraction de faits avec leurs sources, ou analyse manuelle de repli.
+- Contrôle déterministe de l’éligibilité et validation humaine.
+- Envoi des instructions de retour.
+- Réception simulée du produit.
+- Inspection du vêtement, des étiquettes et de la conformité.
+- Remboursement simulé selon le mode validé, ou traitement manuel d’une exception.
+- Notification finale.
+- Clôture du dossier.
+- Analyse Process Mining.
+
+### Hors périmètre
+
+- Paiement bancaire réel.
+- Intégration à un transporteur réel.
+- Gestion complète des stocks.
+- Réparation physique.
+- Portail client complet.
+- Données personnelles réelles.
+
+> Les règles du cas d’étude reprennent des politiques publiques citées; elles ne décrivent pas de processus interne SHEIN ni une interprétation juridique.
+
+---
+
+## 4. Architecture
+
+```text
+Camunda 8.10
+BPMN · Forms · Tasklist · Operate
+              │
+              │ REST Connector
+              ▼
+         API FastAPI
+Validation · Règles · Gestion des erreurs
+              │
+              ├──► PostgreSQL
+              │    Commandes · Articles · Retours
+              │
+              ├──► pgvector
+              │    Politiques · FAQ · Guides · Fiches produit
+              │
+              └──► LangChain → OpenRouter
+                   Classification · Extraction · Réponse
+
+Éligibilité déterministe / DMN
+
+Event logs simulés AS-IS / TO-BE
+              │
+              ▼
+             PM4Py
+Variantes · Performance · Découverte · Conformité
 ```
-Camunda 8 (BPMN, Forms, Tasklist, Operate)
-        │  REST Connector
-        ▼
-   FastAPI (API REST, validation Pydantic)
-        │                     │
-        ▼                     ▼
- LangChain → OpenRouter     SQLite / JSON
-     (LLM)                (commandes, règles)
 
-Event log (CSV) ──► PM4Py (discovery, performance, conformance)
+Schéma détaillé prévu : `docs/architecture.png`.
+
+---
+
+## 5. Acteurs
+
+| Acteur | Responsabilité |
+|--------|----------------|
+| Client | Soumettre la demande, fournir les compléments et retourner le produit |
+| Agent SAV | Valider la proposition après contrôle d’éligibilité et confirmer le traitement après inspection |
+| Agent entrepôt | Confirmer la réception et inspecter le produit |
+| Responsable SAV | Recevoir les escalades |
+| Système | Appliquer les règles, enregistrer les opérations et notifier |
+| Assistant IA | Classifier, résumer, proposer et rédiger avec des sources RAG |
+
+Pour la démonstration, certaines actions du client et de l’entrepôt sont représentées par des formulaires.
+
+---
+
+## 6. Processus AS-IS
+
+Le processus AS-IS représente un traitement principalement manuel.
+
+```text
+Demande reçue
+    ↓
+Lecture par l’agent SAV
+    ↓
+Recherche de la commande
+    ↓
+Vérification des informations et des règles
+    ↓
+Échanges avec le client si nécessaire
+    ↓
+Autorisation ou refus
+    ↓
+Envoi des instructions
+    ↓
+Réception et inspection
+    ↓
+Décision finale
+    ↓
+Exécution de la résolution
+    ↓
+Notification et clôture
 ```
 
-Schéma détaillé : `docs/architecture.png`
+### Problèmes étudiés
 
-## 3. Processus TO-BE (12 étapes)
+- Attente avant validation.
+- Informations incomplètes.
+- Échanges répétés.
+- Vérifications manuelles.
+- Manque de visibilité sur l’état du dossier.
+- Écarts par rapport au processus attendu.
 
-| # | Étape | Type |
-|---|-------|------|
-| 1 | Demande de retour reçue | Start Event |
-| 2 | Saisir la demande de retour | User Task + Form |
-| 3 | Récupérer la commande | REST Service Task |
-| 4 | Commande trouvée ? | Gateway XOR |
-| 5 | Analyser la demande avec IA | REST Service Task |
-| 6 | Vérifier l'éligibilité | Service Task (ou DMN) |
-| 7 | Retour éligible ? | Gateway XOR |
-| 8 | Valider la solution proposée | User Task (human-in-the-loop) |
-| 9 | Timer SLA 24 h | Boundary Timer |
-| 10 | Organiser le retour | Service / User Task |
-| 11 | Générer la réponse client | REST + LLM |
-| 12 | Notifier le client | Service / Send Task |
+Ces problèmes sont représentés dans les données simulées.
 
-## 4. Structure du dépôt
+---
 
+## 7. Processus TO-BE
+
+### Flux principal
+
+| # | Étape | Type BPMN prévu |
+|---|-------|-----------------|
+| 1 | Saisir la demande et récupérer commande/article/fiche produit | User Task + Service Task |
+| 2 | Corriger les références si la commande est introuvable | User Task + XOR Gateway |
+| 3 | Vérifier la complétude et demander un complément si nécessaire | Service Task + User Task + Timer 48 h |
+| 4 | Classifier le motif avec le LLM, puis vérifier sa disponibilité | Service Task + XOR Gateway |
+| 5 | Rechercher la politique avec RAG dans PostgreSQL/pgvector | Service Task + XOR Gateway |
+| 6 | Extraire les faits et les sources, ou effectuer une analyse manuelle | Service Task / User Task |
+| 7 | Évaluer l’éligibilité par règles déterministes/DMN | Service Task + XOR Gateway |
+| 8 | Valider la proposition et le besoin d’un retour physique | User Task + SLA 24 h |
+| 9 | Si requis, recevoir et inspecter le vêtement | User Tasks + contrôle qualité |
+| 10 | Confirmer le mode de remboursement ou traiter une exception | User Task + sous-processus simulé |
+| 11 | Générer la réponse, notifier le client et clôturer | Service Tasks + User Task |
+
+### Vue simplifiée
+
+```text
+Demande → commande et article
+    ↓
+Complétude ? → correction / complément si nécessaire
+    ↓
+LLM → RAG + sources → extraction des faits
+    └── IA/RAG indisponible → analyse manuelle
+    ↓
+Règles déterministes / DMN → éligibilité ?
+    ├── Non → refus sourcé → notification → fin
+    └── Oui → validation humaine + SLA 24 h
+              ↓
+       Retour physique requis ?
+       ├── Non ─────────────────────┐
+       └── Oui → réception → inspection → contrôle qualité
+                                      ↓
+                     choix du traitement simulé / exception
+                                      ↓
+                         réponse → notification → clôture
 ```
+
+### Branches alternatives
+
+#### Commande ou article introuvable
+
+- Demander une correction.
+- Recevoir les nouvelles informations.
+- Relancer la recherche.
+- Prévoir une clôture motivée si le dossier ne peut pas être identifié.
+
+#### Demande incomplète
+
+- Identifier les champs manquants.
+- Envoyer une demande de complément.
+- Saisir ou recevoir la réponse.
+- Reprendre la vérification.
+
+#### Retour refusé
+
+- Enregistrer la décision et sa justification.
+- Générer une réponse adaptée.
+- Notifier le client.
+- Clôturer le dossier.
+
+#### IA indisponible
+
+- Positionner `ai_status` à `fallback`.
+- Diriger le dossier vers une analyse manuelle.
+- Poursuivre la validation SAV.
+
+Un échec de l’IA ne provoque pas automatiquement un refus.
+
+---
+
+## 8. Délais et escalades
+
+### SLA de validation SAV
+
+Un Boundary Timer non interruptif de **24 heures** est prévu sur la tâche de validation SAV.
+
+Lorsqu’il se déclenche :
+
+- la tâche reste active ;
+- une relance est enregistrée ;
+- le responsable SAV est informé.
+
+> Le timer est attaché à la tâche concernée. Il n’est pas une étape séquentielle du processus.
+
+### Produit non reçu
+
+Le BPMN courant ne modélise pas de timer distinct après l’envoi des instructions de retour. Le délai de non-réception reste à décider avant d’ajouter cette branche.
+
+---
+
+## 9. Réception, inspection et résolution
+
+### Réception
+
+L’agent entrepôt enregistre :
+
+- la date de réception ;
+- la quantité reçue ;
+- un commentaire éventuel.
+
+### Inspection
+
+L’agent vérifie :
+
+- la référence du produit ;
+- la quantité ;
+- l’état constaté ;
+- la présence des étiquettes d’origine ;
+- le défaut déclaré ;
+- les éventuelles différences avec la demande.
+
+### Modes de traitement prévus par le BPMN
+
+| Mode | Traitement simulé |
+|------|-------------------|
+| Portefeuille SHEIN | Enregistrement d’un remboursement fictif sur portefeuille |
+| Moyen de paiement initial | Enregistrement d’un remboursement fictif sur le moyen initial |
+| Sans retour physique | Enregistrement d’un remboursement fictif sans retour |
+| Exception SAV | Prise en charge et justification manuelles |
+
+La clôture intervient uniquement après l’enregistrement de la résolution et de la notification finale.
+
+Le BPMN courant n’a pas encore de branche explicite d’erreur après l’échec d’une exécution simulée; ce comportement reste à modéliser.
+
+---
+
+## 10. Intelligence artificielle
+
+### Analyse de la demande
+
+Sortie structurée attendue :
+
+```json
+{
+  "category": "SIZE_FIT",
+  "summary": "La taille semble trop petite; les étiquettes sont encore attachées.",
+  "sentiment": "negative",
+  "urgency": "normal",
+  "days_since_receipt": 8,
+  "item_worn": false,
+  "item_washed": false,
+  "original_tags_attached": true,
+  "policy_source_ids": ["POLICY_CLOTHING_01", "POLICY_RETURN_WINDOW_01"],
+  "recommendation": "review_eligibility"
+}
+```
+
+Cette sortie est illustrative et doit correspondre aux schémas réellement implémentés.
+
+### Utilisations prévues
+
+- Recherche de politiques publiques pertinentes avec RAG et références de sources.
+- Classification du motif et extraction de faits structurés.
+- Résumé de la demande.
+- Suggestion de traitement.
+- Aide à la rédaction d’un complément.
+- Rédaction des instructions.
+- Rédaction de la réponse finale.
+
+### Garde-fous
+
+- Validation des sorties avec Pydantic.
+- Séparation entre `ai_suggestion` et `agent_decision`.
+- Le LLM ne décide pas l’éligibilité et ne déclenche aucun remboursement.
+- Aucun secret transmis au modèle.
+- Données de démonstration fictives.
+- Fallback manuel en cas d’erreur.
+- Message prédéfini si la génération de réponse échoue.
+
+Les recommandations de l’IA restent consultatives.
+
+---
+
+## 11. Formulaires
+
+| Fichier | Utilisation |
+|---------|-------------|
+| `form-demande-retour.form` | Références, motif, solution souhaitée, description et état déclaré du vêtement |
+| `form-correction-references.form` | Correction de commande/article introuvable |
+| `form-complement-information.form` | Réponse du client aux informations manquantes |
+| `form-analyse-manuelle.form` | Repli humain quand le LLM/RAG n’est pas disponible |
+| `form-validation-sav.form` | Sources RAG, résultat des règles et validation de l’agent |
+| `form-escalade-sav.form` | Relance et suivi du SLA par le responsable SAV |
+| `form-reception-produit.form` | Réception simulée du vêtement retourné |
+| `form-inspection-produit.form` | État, étiquettes, défaut et contrôle qualité |
+| `form-reanalyse-apres-inspection.form` | Réévaluation après constat d’un écart |
+| `form-resolution-sav.form` | Mode de remboursement simulé et justification |
+| `form-resolution-exception.form` | Traitement manuel d’une exception |
+| `form-cloture-dossier.form` | Statut de notification et clôture du dossier |
+
+Une pièce justificative peut être représentée par une référence fictive. Le stockage réel de fichiers n’est pas nécessaire au périmètre minimal.
+
+---
+
+## 12. Modèle de données
+
+### Commandes et articles
+
+```text
+order_id
+order_item_id
+product_id
+product_name
+ordered_quantity
+purchase_date
+delivery_date
+unit_price
+```
+
+### Dossiers de retour
+
+```text
+return_id
+order_id
+order_item_id
+return_quantity
+return_reason
+requested_resolution
+eligibility_status
+authorization_status
+ai_status
+ai_suggestion
+agent_decision
+received_at
+inspection_result
+final_resolution
+resolution_status
+closed_at
+```
+
+### États du dossier
+
+```text
+submitted
+awaiting_information
+under_review
+refused
+authorized
+awaiting_product
+received
+inspected
+resolution_in_progress
+resolved
+closed
+```
+
+Chaque retour identifie une ligne de commande et une quantité précise.
+
+---
+
+## 13. Structure du dépôt
+
+```text
 ReturnFlow-AI/
 ├── camunda/
 │   ├── returnflow_as_is.bpmn
 │   ├── returnflow_to_be.bpmn
 │   ├── form-demande-retour.form
+│   ├── form-correction-references.form
+│   ├── form-complement-information.form
+│   ├── form-analyse-manuelle.form
 │   ├── form-validation-sav.form
-│   └── regles-retour.dmn          (optionnel / bonus)
+│   ├── form-escalade-sav.form
+│   ├── form-reception-produit.form
+│   ├── form-inspection-produit.form
+│   ├── form-reanalyse-apres-inspection.form
+│   ├── form-resolution-sav.form
+│   ├── form-resolution-exception.form
+│   ├── form-cloture-dossier.form
+│   └── regles-retour.dmn
 ├── backend/
-│   ├── app.py                     API FastAPI
-│   ├── ai_service.py              LangChain + OpenRouter
-│   ├── schemas.py                 Modèles Pydantic
-│   ├── database.py                Accès SQLite
-│   ├── policies.json              Règles de retour
-│   ├── orders.db                  Commandes simulées
-│   └── .env                       Secrets (jamais versionné)
+│   ├── app.py
+│   ├── ai_service.py
+│   ├── schemas.py
+│   ├── database.py
+│   ├── seed_database.py
+│   ├── policies.json
+│   ├── .env.example
+│   └── tests/
 ├── process_mining/
-│   ├── generate_log.py            Génération de l'event log simulé
-│   ├── process_mining.py          Analyses PM4Py
-│   ├── event_log.csv
-│   └── outputs/                   Graphiques et résultats
+│   ├── generate_log.py
+│   ├── process_mining.py
+│   ├── event_log_as_is.csv
+│   ├── event_log_to_be.csv
+│   └── outputs/
 ├── docs/
+│   ├── cadrage_metier.md
 │   ├── architecture.png
 │   ├── demo_scenarios.md
+│   ├── captures/
 │   └── presentation.pdf
+├── .gitignore
 ├── requirements.txt
 └── README.md
 ```
 
-## 5. Prérequis
+La configuration PostgreSQL/pgvector et le fichier `.env` sont gérés localement; aucun secret ne doit être versionné.
 
-- Camunda Desktop Modeler 5.52.x
-- Camunda 8.10 / c8run
-- Python 3.11
-- Git
-- Une clé API [OpenRouter](https://openrouter.ai)
+---
 
-## 6. Installation
+## 14. Prérequis
+
+- Python 3.11.
+- Git.
+- Camunda 8 avec un environnement local fonctionnel.
+- Camunda Desktop Modeler compatible avec l’environnement retenu.
+- Une clé API OpenRouter.
+
+Les versions exactes des outils et bibliothèques sont à fixer après validation de l’intégration.
+
+### Dépendances principales
+
+```text
+fastapi
+uvicorn
+pydantic
+python-dotenv
+langchain
+langchain-openrouter
+requests
+pm4py
+pandas
+matplotlib
+```
+
+---
+
+## 15. Installation
+
+Les commandes suivantes supposent que les fichiers correspondants ont été implémentés.
+
+### Créer l’environnement Python
+
+Depuis la racine du dépôt :
 
 ```powershell
-git clone https://github.com/<utilisateur>/ReturnFlow-AI.git
-cd ReturnFlow-AI
-
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
 pip install -r requirements.txt
 ```
 
-Dépendances principales : `fastapi`, `uvicorn`, `langchain`, `langchain-openrouter`, `pydantic`, `python-dotenv`, `requests`, `pm4py`, `pandas`, `matplotlib`.
+### Configurer les secrets
 
-### Configuration des secrets
+```powershell
+Copy-Item backend/.env.example backend/.env
+```
 
-Créer le fichier `backend/.env` (**ne jamais l'envoyer sur GitHub**) :
+Modifier `backend/.env` :
 
 ```env
 OPENROUTER_API_KEY=votre_cle_api
-OPENROUTER_MODEL=nom_du_modele
+OPENROUTER_MODEL=modele_a_configurer
 ```
 
-## 7. Lancement
+Le backend doit charger explicitement ce fichier depuis son emplacement.
 
-**1. Démarrer Camunda 8 (c8run)**
-
-```powershell
-.\c8run.exe start
-```
-
-Operate et Tasklist sont ensuite accessibles en local (voir la documentation c8run pour les URL et identifiants par défaut).
-
-**2. Démarrer l'API FastAPI**
+### Initialiser les données
 
 ```powershell
 cd backend
-uvicorn app:app --reload
+python seed_database.py
 ```
 
-- API : http://localhost:8000
-- Documentation Swagger : http://localhost:8000/docs
+Le script doit créer la base et les commandes fictives nécessaires à la démonstration.
 
-**3. Déployer le processus**
+---
 
-Dans Camunda Modeler, ouvrir `camunda/returnflow_to_be.bpmn`, puis déployer le BPMN et les formulaires (`.form`) sur l'instance locale.
+## 16. Lancement
 
-**4. Démarrer une instance**
+### 1. Démarrer Camunda
 
-Lancer une instance du processus, puis remplir le formulaire dans Tasklist.
+Démarrer l’environnement Camunda local selon la distribution et la version installées.
 
-## 8. Endpoints de l'API
+Les URL, identifiants et paramètres de connexion sont à documenter après validation de l’environnement.
+
+### 2. Démarrer FastAPI
+
+Depuis le dossier `backend` :
+
+```powershell
+uvicorn app:app --reload --host 127.0.0.1 --port 8000
+```
+
+- API : `http://localhost:8000`
+- Swagger : `http://localhost:8000/docs`
+
+### 3. Configurer les REST Connectors
+
+Configurer l’adresse du backend dans les tâches concernées.
+
+> Si Camunda ou les Connectors s’exécutent dans un conteneur, `localhost` désigne ce conteneur, pas nécessairement la machine hôte. L’adresse du backend doit être adaptée à l’environnement.
+
+### 4. Déployer le processus
+
+- Ouvrir `camunda/returnflow_to_be.bpmn`.
+- Vérifier les expressions et mappings.
+- Déployer les formulaires.
+- Déployer le BPMN sur l’instance locale.
+
+### 5. Démarrer un dossier
+
+- Démarrer une instance.
+- Compléter le formulaire de demande.
+- Effectuer les validations dans Tasklist.
+- Suivre les variables et l’exécution dans Operate.
+
+---
+
+## 17. Contrat API cible
+
+Les routes suivantes décrivent l’API prévue.
 
 | Méthode | Route | Rôle |
 |---------|-------|------|
-| GET | `/health` | Vérifier que l'API répond |
-| GET | `/orders/{order_id}` | Récupérer une commande |
-| POST | `/eligibility` | Appliquer les règles de retour |
-| POST | `/ai/analyze` | Catégorie, résumé, sentiment, urgence, suggestion |
-| POST | `/ai/generate-response` | Rédiger la réponse client |
+| GET | `/health` | Vérifier la disponibilité |
+| GET | `/orders/{order_id}` | Récupérer une commande et ses articles |
+| POST | `/eligibility` | Appliquer les règles métier |
+| POST | `/ai/analyze` | Produire l’analyse structurée |
+| POST | `/ai/generate-response` | Rédiger un message |
+| POST | `/returns` | Créer un dossier RMA |
+| GET | `/returns/{return_id}` | Consulter le dossier |
+| POST | `/returns/{return_id}/authorization` | Enregistrer l’autorisation ou le refus |
+| POST | `/returns/{return_id}/receive` | Enregistrer la réception |
+| POST | `/returns/{return_id}/inspection` | Enregistrer l’inspection |
+| POST | `/returns/{return_id}/resolution` | Enregistrer la décision finale |
+| POST | `/returns/{return_id}/execute-resolution` | Exécuter la résolution simulée |
+| POST | `/returns/{return_id}/notify` | Simuler la notification |
+| POST | `/returns/{return_id}/close` | Clôturer le dossier |
 
-La sortie de l'IA est un **JSON structuré** (validé par Pydantic). En cas d'échec d'OpenRouter, un **fallback** renvoie la demande vers une analyse manuelle par l'agent SAV.
+### Gestion des erreurs
 
-## 9. Scénarios de test
+- Validation des entrées avec Pydantic.
+- Réponse métier exploitable pour une commande introuvable.
+- Distinction entre erreur technique et décision métier.
+- Fallback si le LLM est indisponible.
+- Prévention des doublons lors de la création ou de l’exécution d’une résolution.
+- Journalisation sans secrets.
 
-| # | Scénario | Résultat attendu |
-|---|----------|------------------|
-| 1 | Retour accepté | Produit éligible, l'agent confirme |
-| 2 | Retour refusé | Hors délai ou non conforme aux règles |
-| 3 | Produit défectueux | Recommandation échange / réparation |
-| 4 | Informations manquantes | Boucle vers complément d'information |
-| 5 | OpenRouter indisponible | Fallback vers analyse manuelle |
-| 6 | SLA dépassé | Déclenchement du timer et escalade |
+Les réponses doivent être mappées vers les variables du processus Camunda.
 
-Détails : `docs/demo_scenarios.md`
+---
 
-## 10. Process Mining
+## 18. Process Mining
 
-Les données sont **simulées** : 60 à 100 dossiers, générés de façon reproductible.
+### Données
+
+Les logs sont entièrement simulés et générés avec une graine fixe.
+
+Objectif : **60 à 100 dossiers par version de processus**.
+
+Deux fichiers sont prévus :
+
+- `event_log_as_is.csv`
+- `event_log_to_be.csv`
+
+### Structure du log
+
+| Colonne | Description |
+|---------|-------------|
+| `case_id` | Identifiant du dossier |
+| `activity` | Nom de l’activité |
+| `start_timestamp` | Début de l’activité |
+| `end_timestamp` | Fin de l’activité |
+| `resource` | Acteur ou système |
+| `result` | Résultat de l’activité |
+| `process_version` | `AS_IS` ou `TO_BE` |
+
+Exemple :
+
+```csv
+case_id,activity,start_timestamp,end_timestamp,resource,result,process_version
+RMA-001,Verifier eligibilite,2026-11-01T10:00:00,2026-11-01T10:00:02,System,eligible,TO_BE
+RMA-001,Autoriser retour,2026-11-01T10:30:00,2026-11-01T10:35:00,Agent01,authorized,TO_BE
+```
+
+Les dates de l’exemple sont fictives.
+
+### Exécution
+
+Depuis la racine du dépôt :
 
 ```powershell
 python process_mining/generate_log.py
 python process_mining/process_mining.py
 ```
 
-Colonnes de `event_log.csv` :
+### Analyses prévues
 
-| Colonne | Exemple |
-|---------|---------|
-| `case_id` | RMA-001 |
-| `activity` | Analyser demande |
-| `timestamp` | 2026-11-01 10:42:15 |
-| `resource` | Agent01 / AI / System |
-| `result` | eligible / refused / exchange |
+1. Variantes de processus.
+2. Découverte par DFG ou Inductive Miner.
+3. Durées de traitement par activité.
+4. Temps entre activités.
+5. Détection des goulots.
+6. Conformance checking.
+7. Comparaison AS-IS / TO-BE.
 
-Analyses produites (dans `process_mining/outputs/`) :
+La conformité doit être évaluée par rapport à un modèle de référence explicite. La découverte seule ne constitue pas un contrôle de conformité.
 
-1. Variantes de processus
-2. Découverte du processus réel (DFG ou Inductive Miner)
-3. Temps moyen et temps d'attente par activité
-4. Détection du goulot d'étranglement
-5. Conformance checking
-6. Comparaison AS-IS vs TO-BE sur quelques KPI
+### KPI
 
-## 11. Captures principales
+- Délai demande → autorisation.
+- Délai autorisation → réception.
+- Délai réception → résolution.
+- Durée totale d’un dossier.
+- Taux de demandes de complément.
+- Taux de refus.
+- Taux de fallback IA.
+- Proportion de propositions IA modifiées par l’agent.
+- Nombre de dépassements du SLA.
 
-<!-- Ajouter les captures dans docs/ puis les référencer ici -->
-
-- BPMN AS-IS : `docs/captures/as_is.png`
-- BPMN TO-BE : `docs/captures/to_be.png`
-- Tasklist et formulaire de validation : `docs/captures/tasklist.png`
-- Variables IA dans Operate : `docs/captures/operate_ai.png`
-- Résultats PM4Py : `docs/captures/process_mining.png`
-
-## 12. Démonstration
-
-1. Montrer l'AS-IS : pourquoi le processus actuel est lent / manuel
-2. Montrer le Process Mining : variantes, délais, goulot, non-conformités
-3. Montrer le TO-BE dans Camunda
-4. Démarrer une instance et remplir le formulaire
-5. Montrer les variables produites par l'IA (catégorie, résumé, suggestion)
-6. Human-in-the-loop : l'agent SAV valide ou modifie la proposition
-7. Fin du workflow : réponse personnalisée, instance terminée
-8. Conclusion : BPMN orchestre, Process Mining mesure, IA enrichit
-
-## 13. Règles de l'équipe
-
-- Tout fichier important est versionné dans Git.
-- Chacun travaille sur une branche courte, puis fusionne dans `main` après test.
-- Le fichier `.env` n'est jamais envoyé sur GitHub.
-- Chaque membre doit pouvoir expliquer l'ensemble du système.
-
-## 14. Équipe
-
-| Membre | Rôle |
-|--------|------|
-| Israe Yaaya | Modélisation BPMN, Camunda Forms, Process Mining, documentation métier |
-| Mohamed | Backend FastAPI, LangChain + OpenRouter, base de données, gestion des erreurs et fallback |
-
-Travail commun : architecture, intégration Camunda ↔ API, tests, scénarios de démonstration et présentation.
+> Les gains AS-IS / TO-BE sont des résultats de simulation, pas des améliorations mesurées en entreprise.
 
 ---
 
-*Les données utilisées dans ce projet sont entièrement simulées.*
+## 19. Scénarios de test
+
+| # | Scénario | Résultat attendu |
+|---|----------|------------------|
+| 1 | Demande éligible | Extraction sourcée, règles déterministes, validation agent |
+| 2 | Demande hors règles | Refus expliqué et notification |
+| 3 | Commande introuvable | Correction des références ou clôture |
+| 4 | Informations manquantes | Complément puis nouvelle vérification; clôture après 48 h |
+| 5 | IA indisponible | Analyse manuelle des faits et des règles |
+| 6 | Contexte RAG insuffisant | Revue manuelle sans décision LLM autonome |
+| 7 | SLA de validation dépassé | Escalade au responsable SAV après 24 h |
+| 8 | Retour physique non requis | Résolution simulée sans étape de réception |
+| 9 | Contrôle qualité conforme | Poursuite vers le mode de traitement choisi |
+| 10 | Contrôle qualité non conforme | Réévaluation humaine après inspection |
+| 11 | Mode de remboursement standard | Portefeuille ou moyen de paiement initial simulé |
+| 12 | Exception de traitement | Prise en charge manuelle et traçable |
+
+Détails prévus : `docs/demo_scenarios.md`.
+
+---
+
+## 20. Captures attendues
+
+À ajouter après implémentation :
+
+- `docs/captures/as_is.png`
+- `docs/captures/to_be.png`
+- `docs/captures/tasklist_demande.png`
+- `docs/captures/tasklist_inspection.png`
+- `docs/captures/operate_ai.png`
+- `docs/captures/process_mining.png`
+
+---
+
+## 21. Démonstration
+
+1. Présenter le problème métier.
+2. Montrer le processus AS-IS.
+3. Présenter les résultats Process Mining.
+4. Montrer le TO-BE dans Camunda.
+5. Soumettre une demande.
+6. Montrer les règles d’éligibilité et l’analyse IA.
+7. Examiner les sources et la décision des règles, puis valider la proposition dans Tasklist.
+8. Simuler la réception.
+9. Compléter l’inspection.
+10. Valider et exécuter la résolution simulée.
+11. Montrer la notification et la clôture.
+12. Illustrer un fallback ou une escalade.
+
+### Message de conclusion
+
+> BPMN orchestre, les règles encadrent, l’IA assiste, l’humain décide et le Process Mining mesure.
+
+---
+
+## 22. Plan de réalisation
+
+### Phase 1 — Socle
+
+- [ ] Créer le dépôt.
+- [ ] Définir les règles pédagogiques.
+- [ ] Modéliser l’AS-IS.
+- [ ] Modéliser le TO-BE.
+- [ ] Créer les commandes fictives.
+- [ ] Implémenter FastAPI.
+
+### Phase 2 — Traitement de la demande
+
+- [ ] Créer le formulaire de demande.
+- [ ] Récupérer la commande et l’article.
+- [ ] Vérifier les informations.
+- [ ] Ajouter la boucle de complément.
+- [ ] Implémenter l’éligibilité.
+- [ ] Intégrer l’analyse IA.
+- [ ] Ajouter le fallback.
+- [ ] Créer la validation SAV.
+
+### Phase 3 — Retour et résolution
+
+- [ ] Créer le dossier RMA.
+- [ ] Générer les instructions.
+- [ ] Ajouter la réception.
+- [ ] Ajouter l’inspection.
+- [ ] Ajouter la décision finale.
+- [ ] Simuler remboursement, échange ou réparation.
+- [ ] Ajouter la notification et la clôture.
+- [ ] Ajouter le timer SLA.
+
+### Phase 4 — Analyse et livraison
+
+- [ ] Générer les logs AS-IS et TO-BE.
+- [ ] Produire les analyses PM4Py.
+- [ ] Tester les scénarios.
+- [ ] Ajouter les captures.
+- [ ] Finaliser le README.
+- [ ] Préparer la présentation.
+- [ ] Répéter la démonstration.
+
+---
+
+## 23. Répartition du travail
+
+| Membre | Responsabilités principales |
+|--------|-----------------------------|
+| Israe Yaaya | BPMN, formulaires, Process Mining, documentation métier |
+| Mohamed | FastAPI, LLM, PostgreSQL/pgvector, règles et gestion des erreurs |
+
+### Travail commun
+
+- Architecture.
+- Contrats API.
+- Intégration Camunda ↔ FastAPI.
+- Variables et mappings.
+- Tests.
+- Scénarios de démonstration.
+- Présentation finale.
+
+Chaque membre doit pouvoir expliquer le fonctionnement global du système.
+
+---
+
+## 24. Sécurité et Git
+
+- Ne jamais versionner les secrets.
+- Versionner `.env.example`, sans clé réelle.
+- Utiliser uniquement des données fictives.
+- Ne pas afficher la clé API dans les captures.
+- Tester avant fusion dans `main`.
+- Utiliser des branches courtes.
+- Conserver les données nécessaires à la reproduction des analyses.
+
+### Exemple de `.gitignore`
+
+```gitignore
+# Secrets
+.env
+.env.*
+!.env.example
+
+# Python
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
+# Bases locales
+*.db
+*.db-shm
+*.db-wal
+*.sqlite
+*.sqlite3
+
+# Journaux
+*.log
+
+# Éditeurs et système
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+```
+
+---
+
+## 25. Critères de réussite
+
+Le projet est considéré comme démontrable lorsque :
+
+- une demande peut parcourir le processus complet ;
+- les branches de refus et de complément fonctionnent ;
+- l’échec de l’IA permet un traitement manuel ;
+- l’agent valide les décisions métier ;
+- la réception et l’inspection sont tracées ;
+- la résolution simulée possède un résultat enregistré ;
+- le dossier est clôturé après notification ;
+- les analyses Process Mining sont reproductibles ;
+- aucune donnée sensible n’est présente dans le dépôt.
+
+---
+
+*ReturnFlow AI est un projet pédagogique utilisant exclusivement des données et opérations simulées.*
