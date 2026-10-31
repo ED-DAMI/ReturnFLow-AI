@@ -1,0 +1,262 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:zeebe="http://camunda.org/schema/zeebe/1.0" xmlns:modeler="http://camunda.org/schema/modeler/1.0" id="Definitions_returnflow_as_is" targetNamespace="http://bpmn.io/schema/bpmn" exporter="Camunda Modeler" exporterVersion="5.0.0" modeler:executionPlatform="Camunda Cloud" modeler:executionPlatformVersion="8.8.0">
+  <bpmn:process id="returnflow_as_is" name="ReturnFlow AI - AS-IS" isExecutable="false">
+    <bpmn:startEvent id="Start_Demande" name="Demande reçue">
+      <bpmn:outgoing>Flow_Start_Demande_Task_Lire</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:manualTask id="Task_Lire" name="Lire la demande">
+      <bpmn:incoming>Flow_Start_Demande_Task_Lire</bpmn:incoming>
+      <bpmn:outgoing>Flow_Task_Lire_Task_Recherche</bpmn:outgoing>
+    </bpmn:manualTask>
+    <bpmn:manualTask id="Task_Recherche" name="Rechercher la commande">
+      <bpmn:incoming>Flow_Task_Lire_Task_Recherche</bpmn:incoming>
+      <bpmn:outgoing>Flow_Task_Recherche_Task_Verif</bpmn:outgoing>
+    </bpmn:manualTask>
+    <bpmn:manualTask id="Task_Verif" name="Vérifier les informations et les règles">
+      <bpmn:incoming>Flow_Task_Recherche_Task_Verif</bpmn:incoming>
+      <bpmn:incoming>Flow_Task_Echange_Task_Verif</bpmn:incoming>
+      <bpmn:outgoing>Flow_Task_Verif_GW_Complete</bpmn:outgoing>
+    </bpmn:manualTask>
+    <bpmn:exclusiveGateway id="GW_Complete" name="Informations complètes ?" default="Flow_GW_Complete_Task_Echange">
+      <bpmn:incoming>Flow_Task_Verif_GW_Complete</bpmn:incoming>
+      <bpmn:outgoing>Flow_GW_Complete_Task_Autor</bpmn:outgoing>
+      <bpmn:outgoing>Flow_GW_Complete_Task_Echange</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:manualTask id="Task_Echange" name="Échanger avec le client">
+      <bpmn:incoming>Flow_GW_Complete_Task_Echange</bpmn:incoming>
+      <bpmn:outgoing>Flow_Task_Echange_Task_Verif</bpmn:outgoing>
+    </bpmn:manualTask>
+    <bpmn:manualTask id="Task_Autor" name="Autoriser ou refuser le retour">
+      <bpmn:incoming>Flow_GW_Complete_Task_Autor</bpmn:incoming>
+      <bpmn:outgoing>Flow_Task_Autor_GW_Autorise</bpmn:outgoing>
+    </bpmn:manualTask>
+    <bpmn:exclusiveGateway id="GW_Autorise" name="Retour autorisé ?" default="Flow_GW_Autorise_Task_Refus">
+      <bpmn:incoming>Flow_Task_Autor_GW_Autorise</bpmn:incoming>
+      <bpmn:outgoing>Flow_GW_Autorise_Task_Instructions</bpmn:outgoing>
+      <bpmn:outgoing>Flow_GW_Autorise_Task_Refus</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:manualTask id="Task_Refus" name="Enregistrer le refus">
+      <bpmn:incoming>Flow_GW_Autorise_Task_Refus</bpmn:incoming>
+      <bpmn:outgoing>Flow_Task_Refus_GW_Fusion</bpmn:outgoing>
+    </bpmn:manualTask>
+    <bpmn:manualTask id="Task_Instructions" name="Envoyer les instructions de retour">
+      <bpmn:incoming>Flow_GW_Autorise_Task_Instructions</bpmn:incoming>
+      <bpmn:outgoing>Flow_Task_Instructions_Task_Reception</bpmn:outgoing>
+    </bpmn:manualTask>
+    <bpmn:manualTask id="Task_Reception" name="Réceptionner le produit">
+      <bpmn:incoming>Flow_Task_Instructions_Task_Reception</bpmn:incoming>
+      <bpmn:outgoing>Flow_Task_Reception_Task_Inspection</bpmn:outgoing>
+    </bpmn:manualTask>
+    <bpmn:manualTask id="Task_Inspection" name="Inspecter le produit">
+      <bpmn:incoming>Flow_Task_Reception_Task_Inspection</bpmn:incoming>
+      <bpmn:outgoing>Flow_Task_Inspection_Task_Decision</bpmn:outgoing>
+    </bpmn:manualTask>
+    <bpmn:manualTask id="Task_Decision" name="Décider de la résolution finale">
+      <bpmn:incoming>Flow_Task_Inspection_Task_Decision</bpmn:incoming>
+      <bpmn:outgoing>Flow_Task_Decision_Task_Execution</bpmn:outgoing>
+    </bpmn:manualTask>
+    <bpmn:manualTask id="Task_Execution" name="Exécuter la résolution">
+      <bpmn:incoming>Flow_Task_Decision_Task_Execution</bpmn:incoming>
+      <bpmn:outgoing>Flow_Task_Execution_GW_Fusion</bpmn:outgoing>
+    </bpmn:manualTask>
+    <bpmn:exclusiveGateway id="GW_Fusion">
+      <bpmn:incoming>Flow_Task_Refus_GW_Fusion</bpmn:incoming>
+      <bpmn:incoming>Flow_Task_Execution_GW_Fusion</bpmn:incoming>
+      <bpmn:outgoing>Flow_GW_Fusion_Task_Notifier</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:manualTask id="Task_Notifier" name="Notifier le client">
+      <bpmn:incoming>Flow_GW_Fusion_Task_Notifier</bpmn:incoming>
+      <bpmn:outgoing>Flow_Task_Notifier_Task_Cloture</bpmn:outgoing>
+    </bpmn:manualTask>
+    <bpmn:manualTask id="Task_Cloture" name="Clôturer le dossier">
+      <bpmn:incoming>Flow_Task_Notifier_Task_Cloture</bpmn:incoming>
+      <bpmn:outgoing>Flow_Task_Cloture_End_Termine</bpmn:outgoing>
+    </bpmn:manualTask>
+    <bpmn:endEvent id="End_Termine" name="Dossier terminé">
+      <bpmn:incoming>Flow_Task_Cloture_End_Termine</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:sequenceFlow id="Flow_Start_Demande_Task_Lire" sourceRef="Start_Demande" targetRef="Task_Lire" />
+    <bpmn:sequenceFlow id="Flow_Task_Lire_Task_Recherche" sourceRef="Task_Lire" targetRef="Task_Recherche" />
+    <bpmn:sequenceFlow id="Flow_Task_Recherche_Task_Verif" sourceRef="Task_Recherche" targetRef="Task_Verif" />
+    <bpmn:sequenceFlow id="Flow_Task_Verif_GW_Complete" sourceRef="Task_Verif" targetRef="GW_Complete" />
+    <bpmn:sequenceFlow id="Flow_GW_Complete_Task_Autor" sourceRef="GW_Complete" targetRef="Task_Autor" name="Oui">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=complete = true</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_GW_Complete_Task_Echange" sourceRef="GW_Complete" targetRef="Task_Echange" name="Non" />
+    <bpmn:sequenceFlow id="Flow_Task_Echange_Task_Verif" sourceRef="Task_Echange" targetRef="Task_Verif" />
+    <bpmn:sequenceFlow id="Flow_Task_Autor_GW_Autorise" sourceRef="Task_Autor" targetRef="GW_Autorise" />
+    <bpmn:sequenceFlow id="Flow_GW_Autorise_Task_Instructions" sourceRef="GW_Autorise" targetRef="Task_Instructions" name="Oui">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=authorized = true</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_GW_Autorise_Task_Refus" sourceRef="GW_Autorise" targetRef="Task_Refus" name="Non" />
+    <bpmn:sequenceFlow id="Flow_Task_Refus_GW_Fusion" sourceRef="Task_Refus" targetRef="GW_Fusion" />
+    <bpmn:sequenceFlow id="Flow_Task_Instructions_Task_Reception" sourceRef="Task_Instructions" targetRef="Task_Reception" />
+    <bpmn:sequenceFlow id="Flow_Task_Reception_Task_Inspection" sourceRef="Task_Reception" targetRef="Task_Inspection" />
+    <bpmn:sequenceFlow id="Flow_Task_Inspection_Task_Decision" sourceRef="Task_Inspection" targetRef="Task_Decision" />
+    <bpmn:sequenceFlow id="Flow_Task_Decision_Task_Execution" sourceRef="Task_Decision" targetRef="Task_Execution" />
+    <bpmn:sequenceFlow id="Flow_Task_Execution_GW_Fusion" sourceRef="Task_Execution" targetRef="GW_Fusion" />
+    <bpmn:sequenceFlow id="Flow_GW_Fusion_Task_Notifier" sourceRef="GW_Fusion" targetRef="Task_Notifier" />
+    <bpmn:sequenceFlow id="Flow_Task_Notifier_Task_Cloture" sourceRef="Task_Notifier" targetRef="Task_Cloture" />
+    <bpmn:sequenceFlow id="Flow_Task_Cloture_End_Termine" sourceRef="Task_Cloture" targetRef="End_Termine" />
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="returnflow_as_is">
+      <bpmndi:BPMNShape id="Start_Demande_di" bpmnElement="Start_Demande">
+        <dc:Bounds x="132" y="232" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="100" y="272" width="100" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_Lire_di" bpmnElement="Task_Lire">
+        <dc:Bounds x="230" y="210" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_Recherche_di" bpmnElement="Task_Recherche">
+        <dc:Bounds x="380" y="210" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_Verif_di" bpmnElement="Task_Verif">
+        <dc:Bounds x="530" y="210" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="GW_Complete_di" bpmnElement="GW_Complete" isMarkerVisible="true">
+        <dc:Bounds x="695" y="225" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="670" y="178" width="100" height="40" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_Echange_di" bpmnElement="Task_Echange">
+        <dc:Bounds x="670" y="380" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_Autor_di" bpmnElement="Task_Autor">
+        <dc:Bounds x="810" y="210" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="GW_Autorise_di" bpmnElement="GW_Autorise" isMarkerVisible="true">
+        <dc:Bounds x="975" y="225" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="950" y="178" width="100" height="40" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_Refus_di" bpmnElement="Task_Refus">
+        <dc:Bounds x="950" y="380" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_Instructions_di" bpmnElement="Task_Instructions">
+        <dc:Bounds x="1090" y="210" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_Reception_di" bpmnElement="Task_Reception">
+        <dc:Bounds x="1230" y="210" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_Inspection_di" bpmnElement="Task_Inspection">
+        <dc:Bounds x="1370" y="210" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_Decision_di" bpmnElement="Task_Decision">
+        <dc:Bounds x="1510" y="210" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_Execution_di" bpmnElement="Task_Execution">
+        <dc:Bounds x="1650" y="210" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="GW_Fusion_di" bpmnElement="GW_Fusion" isMarkerVisible="true">
+        <dc:Bounds x="1815" y="225" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_Notifier_di" bpmnElement="Task_Notifier">
+        <dc:Bounds x="1920" y="210" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_Cloture_di" bpmnElement="Task_Cloture">
+        <dc:Bounds x="2050" y="210" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="End_Termine_di" bpmnElement="End_Termine">
+        <dc:Bounds x="2192" y="232" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="2160" y="272" width="100" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="Flow_Start_Demande_Task_Lire_di" bpmnElement="Flow_Start_Demande_Task_Lire">
+        <di:waypoint x="168" y="250" />
+        <di:waypoint x="230" y="250" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_Task_Lire_Task_Recherche_di" bpmnElement="Flow_Task_Lire_Task_Recherche">
+        <di:waypoint x="330" y="250" />
+        <di:waypoint x="380" y="250" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_Task_Recherche_Task_Verif_di" bpmnElement="Flow_Task_Recherche_Task_Verif">
+        <di:waypoint x="480" y="250" />
+        <di:waypoint x="530" y="250" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_Task_Verif_GW_Complete_di" bpmnElement="Flow_Task_Verif_GW_Complete">
+        <di:waypoint x="630" y="250" />
+        <di:waypoint x="695" y="250" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_GW_Complete_Task_Autor_di" bpmnElement="Flow_GW_Complete_Task_Autor">
+        <di:waypoint x="745" y="250" />
+        <di:waypoint x="810" y="250" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="753" y="228" width="60" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_GW_Complete_Task_Echange_di" bpmnElement="Flow_GW_Complete_Task_Echange">
+        <di:waypoint x="720" y="275" />
+        <di:waypoint x="720" y="380" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="726" y="279" width="60" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_Task_Echange_Task_Verif_di" bpmnElement="Flow_Task_Echange_Task_Verif">
+        <di:waypoint x="670" y="420" />
+        <di:waypoint x="580" y="420" />
+        <di:waypoint x="580" y="290" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_Task_Autor_GW_Autorise_di" bpmnElement="Flow_Task_Autor_GW_Autorise">
+        <di:waypoint x="910" y="250" />
+        <di:waypoint x="975" y="250" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_GW_Autorise_Task_Instructions_di" bpmnElement="Flow_GW_Autorise_Task_Instructions">
+        <di:waypoint x="1025" y="250" />
+        <di:waypoint x="1090" y="250" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1033" y="228" width="60" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_GW_Autorise_Task_Refus_di" bpmnElement="Flow_GW_Autorise_Task_Refus">
+        <di:waypoint x="1000" y="275" />
+        <di:waypoint x="1000" y="380" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1006" y="279" width="60" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_Task_Refus_GW_Fusion_di" bpmnElement="Flow_Task_Refus_GW_Fusion">
+        <di:waypoint x="1050" y="420" />
+        <di:waypoint x="1840" y="420" />
+        <di:waypoint x="1840" y="275" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_Task_Instructions_Task_Reception_di" bpmnElement="Flow_Task_Instructions_Task_Reception">
+        <di:waypoint x="1190" y="250" />
+        <di:waypoint x="1230" y="250" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_Task_Reception_Task_Inspection_di" bpmnElement="Flow_Task_Reception_Task_Inspection">
+        <di:waypoint x="1330" y="250" />
+        <di:waypoint x="1370" y="250" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_Task_Inspection_Task_Decision_di" bpmnElement="Flow_Task_Inspection_Task_Decision">
+        <di:waypoint x="1470" y="250" />
+        <di:waypoint x="1510" y="250" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_Task_Decision_Task_Execution_di" bpmnElement="Flow_Task_Decision_Task_Execution">
+        <di:waypoint x="1610" y="250" />
+        <di:waypoint x="1650" y="250" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_Task_Execution_GW_Fusion_di" bpmnElement="Flow_Task_Execution_GW_Fusion">
+        <di:waypoint x="1750" y="250" />
+        <di:waypoint x="1815" y="250" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_GW_Fusion_Task_Notifier_di" bpmnElement="Flow_GW_Fusion_Task_Notifier">
+        <di:waypoint x="1865" y="250" />
+        <di:waypoint x="1920" y="250" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_Task_Notifier_Task_Cloture_di" bpmnElement="Flow_Task_Notifier_Task_Cloture">
+        <di:waypoint x="2020" y="250" />
+        <di:waypoint x="2050" y="250" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_Task_Cloture_End_Termine_di" bpmnElement="Flow_Task_Cloture_End_Termine">
+        <di:waypoint x="2150" y="250" />
+        <di:waypoint x="2192" y="250" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>
