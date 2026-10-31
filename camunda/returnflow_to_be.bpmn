@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:zeebe="http://camunda.org/schema/zeebe/1.0" xmlns:modeler="http://camunda.org/schema/modeler/1.0" id="Definitions_returnflow_to_be" targetNamespace="http://bpmn.io/schema/bpmn" exporter="Camunda Modeler" exporterVersion="5.0.0" modeler:executionPlatform="Camunda Cloud" modeler:executionPlatformVersion="8.8.0">
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:zeebe="http://camunda.org/schema/zeebe/1.0" xmlns:modeler="http://camunda.org/schema/modeler/1.0" id="Definitions_returnflow_to_be" targetNamespace="http://bpmn.io/schema/bpmn" exporter="Camunda Modeler" exporterVersion="5.52.0" modeler:executionPlatform="Camunda Cloud" modeler:executionPlatformVersion="8.8.0">
   <bpmn:error id="Error_AI" name="AI_UNAVAILABLE" errorCode="AI_UNAVAILABLE" />
   <bpmn:error id="Error_Exec" name="EXEC_FAILED" errorCode="EXEC_FAILED" />
   <bpmn:process id="returnflow_to_be" name="ReturnFlow AI - TO-BE" isExecutable="true">
@@ -8,24 +8,24 @@
     </bpmn:startEvent>
     <bpmn:userTask id="Task_Saisie" name="Saisir la demande">
       <bpmn:extensionElements>
-      <zeebe:userTask />
-      <zeebe:formDefinition formId="form-demande-retour" />
+        <zeebe:userTask />
+        <zeebe:formDefinition formId="form-demande-retour" />
       </bpmn:extensionElements>
       <bpmn:incoming>Flow_Start_Demande_Task_Saisie</bpmn:incoming>
       <bpmn:outgoing>Flow_Task_Saisie_Task_Commande</bpmn:outgoing>
     </bpmn:userTask>
-    <bpmn:serviceTask id="Task_Commande" name="Récupérer la commande et l'article">
+    <bpmn:serviceTask id="Task_Commande" name="Récupérer la commande et l&#39;article">
       <bpmn:extensionElements>
-      <zeebe:taskDefinition type="io.camunda:http-json:1" />
-      <zeebe:ioMapping>
-        <zeebe:input source="noAuth" target="authentication.type" />
-        <zeebe:input source="GET" target="method" />
-        <zeebe:input source='="http://host.docker.internal:8000" + "/orders/" + string(order_id)' target="url" />
-      </zeebe:ioMapping>
-      <zeebe:taskHeaders>
-        <zeebe:header key="resultExpression" value="={order_found: response.body.found, order: response.body}" />
-        <zeebe:header key="retryBackoff" value="PT0S" />
-      </zeebe:taskHeaders>
+        <zeebe:taskDefinition type="io.camunda:http-json:1" />
+        <zeebe:ioMapping>
+          <zeebe:input source="noAuth" target="authentication.type" />
+          <zeebe:input source="GET" target="method" />
+          <zeebe:input source="=&#34;http://host.docker.internal:8000&#34; + &#34;/orders/&#34; + string(order_id)" target="url" />
+        </zeebe:ioMapping>
+        <zeebe:taskHeaders>
+          <zeebe:header key="resultExpression" value="={order_found: response.body.found, order: response.body}" />
+          <zeebe:header key="retryBackoff" value="PT0S" />
+        </zeebe:taskHeaders>
       </bpmn:extensionElements>
       <bpmn:incoming>Flow_Task_Saisie_Task_Commande</bpmn:incoming>
       <bpmn:incoming>Flow_GW_Correction_Task_Commande</bpmn:incoming>
@@ -38,7 +38,7 @@
     </bpmn:exclusiveGateway>
     <bpmn:scriptTask id="Task_Verif" name="Vérifier les informations">
       <bpmn:extensionElements>
-      <zeebe:script expression="=is defined(order_id) and order_id != null and is defined(order_item_id) and order_item_id != null and is defined(return_quantity) and return_quantity != null and is defined(return_reason) and return_reason != null and is defined(description) and description != null" resultVariable="is_complete" />
+        <zeebe:script expression="=is defined(order_id) and order_id != null and is defined(order_item_id) and order_item_id != null and is defined(return_quantity) and return_quantity != null and is defined(return_reason) and return_reason != null and is defined(description) and description != null" resultVariable="is_complete" />
       </bpmn:extensionElements>
       <bpmn:incoming>Flow_GW_Trouve_Task_Verif</bpmn:incoming>
       <bpmn:incoming>Flow_Task_Complement_Task_Verif</bpmn:incoming>
@@ -49,70 +49,72 @@
       <bpmn:outgoing>Flow_GW_Complete_Task_Eligibilite</bpmn:outgoing>
       <bpmn:outgoing>Flow_GW_Complete_Task_Complement</bpmn:outgoing>
     </bpmn:exclusiveGateway>
-    <bpmn:serviceTask id="Task_Eligibilite" name="Vérifier l'éligibilité">
+    <bpmn:serviceTask id="Task_Eligibilite" name="Vérifier l&#39;éligibilité">
       <bpmn:extensionElements>
-      <zeebe:taskDefinition type="io.camunda:http-json:1" />
-      <zeebe:ioMapping>
-        <zeebe:input source="noAuth" target="authentication.type" />
-        <zeebe:input source="POST" target="method" />
-        <zeebe:input source='="http://host.docker.internal:8000" + "/eligibility"' target="url" />
-        <zeebe:input source='={"Content-Type":"application/json"}' target="headers" />
-        <zeebe:input source="={order_id: if is defined(order_id) then order_id else null, order_item_id: if is defined(order_item_id) then order_item_id else null, return_quantity: if is defined(return_quantity) then return_quantity else null, return_reason: if is defined(return_reason) then return_reason else null}" target="body" />
-      </zeebe:ioMapping>
-      <zeebe:taskHeaders>
-        <zeebe:header key="resultExpression" value="={eligibility_status: response.body.eligibility_status, eligibility_reasons: response.body.reasons}" />
-        <zeebe:header key="retryBackoff" value="PT0S" />
-      </zeebe:taskHeaders>
+        <zeebe:taskDefinition type="io.camunda:http-json:1" />
+        <zeebe:ioMapping>
+          <zeebe:input source="noAuth" target="authentication.type" />
+          <zeebe:input source="POST" target="method" />
+          <zeebe:input source="=&#34;http://host.docker.internal:8000&#34; + &#34;/eligibility&#34;" target="url" />
+          <zeebe:input source="={&#34;Content-Type&#34;:&#34;application/json&#34;}" target="headers" />
+          <zeebe:input source="={order_id: if is defined(order_id) then order_id else null, order_item_id: if is defined(order_item_id) then order_item_id else null, return_quantity: if is defined(return_quantity) then return_quantity else null, return_reason: if is defined(return_reason) then return_reason else null}" target="body" />
+        </zeebe:ioMapping>
+        <zeebe:taskHeaders>
+          <zeebe:header key="resultExpression" value="={eligibility_status: response.body.eligibility_status, eligibility_reasons: response.body.reasons}" />
+          <zeebe:header key="retryBackoff" value="PT0S" />
+        </zeebe:taskHeaders>
       </bpmn:extensionElements>
       <bpmn:incoming>Flow_GW_Complete_Task_Eligibilite</bpmn:incoming>
       <bpmn:outgoing>Flow_Task_Eligibilite_Task_AI</bpmn:outgoing>
     </bpmn:serviceTask>
     <bpmn:serviceTask id="Task_AI" name="Analyser la demande avec IA">
       <bpmn:extensionElements>
-      <zeebe:taskDefinition type="io.camunda:http-json:1" />
-      <zeebe:ioMapping>
-        <zeebe:input source="noAuth" target="authentication.type" />
-        <zeebe:input source="POST" target="method" />
-        <zeebe:input source='="http://host.docker.internal:8000" + "/ai/analyze"' target="url" />
-        <zeebe:input source='={"Content-Type":"application/json"}' target="headers" />
-        <zeebe:input source="={order_id: if is defined(order_id) then order_id else null, order_item_id: if is defined(order_item_id) then order_item_id else null, return_quantity: if is defined(return_quantity) then return_quantity else null, return_reason: if is defined(return_reason) then return_reason else null, description: if is defined(description) then description else null, eligibility_status: if is defined(eligibility_status) then eligibility_status else null}" target="body" />
-      </zeebe:ioMapping>
-      <zeebe:taskHeaders>
-        <zeebe:header key="resultExpression" value="={ai_status: response.body.ai_status, ai_suggestion: response.body.analysis}" />
-        <zeebe:header key="errorExpression" value='=if error != null then bpmnError("AI_UNAVAILABLE", "IA indisponible") else null' />
-        <zeebe:header key="retryBackoff" value="PT0S" />
-      </zeebe:taskHeaders>
+        <zeebe:taskDefinition type="io.camunda:http-json:1" />
+        <zeebe:ioMapping>
+          <zeebe:input source="noAuth" target="authentication.type" />
+          <zeebe:input source="POST" target="method" />
+          <zeebe:input source="=&#34;http://host.docker.internal:8000&#34; + &#34;/ai/analyze&#34;" target="url" />
+          <zeebe:input source="={&#34;Content-Type&#34;:&#34;application/json&#34;}" target="headers" />
+          <zeebe:input source="={order_id: if is defined(order_id) then order_id else null, order_item_id: if is defined(order_item_id) then order_item_id else null, return_quantity: if is defined(return_quantity) then return_quantity else null, return_reason: if is defined(return_reason) then return_reason else null, description: if is defined(description) then description else null, eligibility_status: if is defined(eligibility_status) then eligibility_status else null}" target="body" />
+        </zeebe:ioMapping>
+        <zeebe:taskHeaders>
+          <zeebe:header key="resultExpression" value="={ai_status: response.body.ai_status, ai_suggestion: response.body.analysis}" />
+          <zeebe:header key="errorExpression" value="=if error != null then bpmnError(&#34;AI_UNAVAILABLE&#34;, &#34;IA indisponible&#34;) else null" />
+          <zeebe:header key="retryBackoff" value="PT0S" />
+        </zeebe:taskHeaders>
       </bpmn:extensionElements>
       <bpmn:incoming>Flow_Task_Eligibilite_Task_AI</bpmn:incoming>
       <bpmn:outgoing>Flow_Task_AI_Task_Autor</bpmn:outgoing>
     </bpmn:serviceTask>
-    <bpmn:boundaryEvent id="Evt_AI_Err" name="IA indisponible" attachedToRef="Task_AI" cancelActivity="true">
+    <bpmn:boundaryEvent id="Evt_AI_Err" name="IA indisponible" attachedToRef="Task_AI">
       <bpmn:outgoing>Flow_Evt_AI_Err_Task_Fallback</bpmn:outgoing>
       <bpmn:errorEventDefinition id="ErrDef_AI" errorRef="Error_AI" />
     </bpmn:boundaryEvent>
     <bpmn:scriptTask id="Task_Fallback" name="Passer en analyse manuelle">
       <bpmn:extensionElements>
-      <zeebe:script expression='="fallback"' resultVariable="ai_status" />
+        <zeebe:script expression="=&#34;fallback&#34;" resultVariable="ai_status" />
       </bpmn:extensionElements>
       <bpmn:incoming>Flow_Evt_AI_Err_Task_Fallback</bpmn:incoming>
       <bpmn:outgoing>Flow_Task_Fallback_Task_Autor</bpmn:outgoing>
     </bpmn:scriptTask>
     <bpmn:userTask id="Task_Autor" name="Autoriser ou refuser le retour">
       <bpmn:extensionElements>
-      <zeebe:userTask />
-      <zeebe:formDefinition formId="form-autorisation-sav" />
+        <zeebe:userTask />
+        <zeebe:formDefinition formId="form-autorisation-sav" />
       </bpmn:extensionElements>
       <bpmn:incoming>Flow_Task_AI_Task_Autor</bpmn:incoming>
       <bpmn:incoming>Flow_Task_Fallback_Task_Autor</bpmn:incoming>
       <bpmn:outgoing>Flow_Task_Autor_GW_Autorise</bpmn:outgoing>
     </bpmn:userTask>
-    <bpmn:boundaryEvent id="Evt_SLA" name="SLA 24 h dépassé" attachedToRef="Task_Autor" cancelActivity="false">
+    <bpmn:boundaryEvent id="Evt_SLA" name="SLA 24 h dépassé" cancelActivity="false" attachedToRef="Task_Autor">
       <bpmn:outgoing>Flow_Evt_SLA_Task_RelanceSAV</bpmn:outgoing>
-      <bpmn:timerEventDefinition><bpmn:timeDuration xsi:type="bpmn:tFormalExpression">PT24H</bpmn:timeDuration></bpmn:timerEventDefinition>
+      <bpmn:timerEventDefinition>
+        <bpmn:timeDuration xsi:type="bpmn:tFormalExpression">PT24H</bpmn:timeDuration>
+      </bpmn:timerEventDefinition>
     </bpmn:boundaryEvent>
     <bpmn:scriptTask id="Task_RelanceSAV" name="Enregistrer la relance et informer le responsable SAV">
       <bpmn:extensionElements>
-      <zeebe:script expression="=if is defined(sla_breaches) then sla_breaches + 1 else 1" resultVariable="sla_breaches" />
+        <zeebe:script expression="=if is defined(sla_breaches) then sla_breaches + 1 else 1" resultVariable="sla_breaches" />
       </bpmn:extensionElements>
       <bpmn:incoming>Flow_Evt_SLA_Task_RelanceSAV</bpmn:incoming>
       <bpmn:outgoing>Flow_Task_RelanceSAV_End_Escalade</bpmn:outgoing>
@@ -127,18 +129,18 @@
     </bpmn:exclusiveGateway>
     <bpmn:serviceTask id="Task_Enregistrement" name="Enregistrer le dossier (refus ou clôture motivée)">
       <bpmn:extensionElements>
-      <zeebe:taskDefinition type="io.camunda:http-json:1" />
-      <zeebe:ioMapping>
-        <zeebe:input source="noAuth" target="authentication.type" />
-        <zeebe:input source="POST" target="method" />
-        <zeebe:input source='="http://host.docker.internal:8000" + "/returns"' target="url" />
-        <zeebe:input source='={"Content-Type":"application/json"}' target="headers" />
-        <zeebe:input source="={order_id: if is defined(order_id) then order_id else null, order_item_id: if is defined(order_item_id) then order_item_id else null, return_quantity: if is defined(return_quantity) then return_quantity else null, return_reason: if is defined(return_reason) then return_reason else null, eligibility_status: if is defined(eligibility_status) then eligibility_status else null, agent_decision: if is defined(agent_decision) then agent_decision else null, agent_justification: if is defined(agent_justification) then agent_justification else null}" target="body" />
-      </zeebe:ioMapping>
-      <zeebe:taskHeaders>
-        <zeebe:header key="resultExpression" value="={return_id: response.body.return_id}" />
-        <zeebe:header key="retryBackoff" value="PT0S" />
-      </zeebe:taskHeaders>
+        <zeebe:taskDefinition type="io.camunda:http-json:1" />
+        <zeebe:ioMapping>
+          <zeebe:input source="noAuth" target="authentication.type" />
+          <zeebe:input source="POST" target="method" />
+          <zeebe:input source="=&#34;http://host.docker.internal:8000&#34; + &#34;/returns&#34;" target="url" />
+          <zeebe:input source="={&#34;Content-Type&#34;:&#34;application/json&#34;}" target="headers" />
+          <zeebe:input source="={order_id: if is defined(order_id) then order_id else null, order_item_id: if is defined(order_item_id) then order_item_id else null, return_quantity: if is defined(return_quantity) then return_quantity else null, return_reason: if is defined(return_reason) then return_reason else null, eligibility_status: if is defined(eligibility_status) then eligibility_status else null, agent_decision: if is defined(agent_decision) then agent_decision else null, agent_justification: if is defined(agent_justification) then agent_justification else null}" target="body" />
+        </zeebe:ioMapping>
+        <zeebe:taskHeaders>
+          <zeebe:header key="resultExpression" value="={return_id: response.body.return_id}" />
+          <zeebe:header key="retryBackoff" value="PT0S" />
+        </zeebe:taskHeaders>
       </bpmn:extensionElements>
       <bpmn:incoming>Flow_GW_Correction_Task_Enregistrement</bpmn:incoming>
       <bpmn:incoming>Flow_GW_Autorise_Task_Enregistrement</bpmn:incoming>
@@ -146,55 +148,57 @@
     </bpmn:serviceTask>
     <bpmn:serviceTask id="Task_RMA" name="Créer le dossier RMA">
       <bpmn:extensionElements>
-      <zeebe:taskDefinition type="io.camunda:http-json:1" />
-      <zeebe:ioMapping>
-        <zeebe:input source="noAuth" target="authentication.type" />
-        <zeebe:input source="POST" target="method" />
-        <zeebe:input source='="http://host.docker.internal:8000" + "/returns"' target="url" />
-        <zeebe:input source='={"Content-Type":"application/json"}' target="headers" />
-        <zeebe:input source="={order_id: if is defined(order_id) then order_id else null, order_item_id: if is defined(order_item_id) then order_item_id else null, return_quantity: if is defined(return_quantity) then return_quantity else null, return_reason: if is defined(return_reason) then return_reason else null, requested_resolution: if is defined(requested_resolution) then requested_resolution else null, eligibility_status: if is defined(eligibility_status) then eligibility_status else null, ai_status: if is defined(ai_status) then ai_status else null, ai_suggestion: if is defined(ai_suggestion) then ai_suggestion else null, agent_decision: if is defined(agent_decision) then agent_decision else null, agent_justification: if is defined(agent_justification) then agent_justification else null}" target="body" />
-      </zeebe:ioMapping>
-      <zeebe:taskHeaders>
-        <zeebe:header key="resultExpression" value="={return_id: response.body.return_id}" />
-        <zeebe:header key="retryBackoff" value="PT0S" />
-      </zeebe:taskHeaders>
+        <zeebe:taskDefinition type="io.camunda:http-json:1" />
+        <zeebe:ioMapping>
+          <zeebe:input source="noAuth" target="authentication.type" />
+          <zeebe:input source="POST" target="method" />
+          <zeebe:input source="=&#34;http://host.docker.internal:8000&#34; + &#34;/returns&#34;" target="url" />
+          <zeebe:input source="={&#34;Content-Type&#34;:&#34;application/json&#34;}" target="headers" />
+          <zeebe:input source="={order_id: if is defined(order_id) then order_id else null, order_item_id: if is defined(order_item_id) then order_item_id else null, return_quantity: if is defined(return_quantity) then return_quantity else null, return_reason: if is defined(return_reason) then return_reason else null, requested_resolution: if is defined(requested_resolution) then requested_resolution else null, eligibility_status: if is defined(eligibility_status) then eligibility_status else null, ai_status: if is defined(ai_status) then ai_status else null, ai_suggestion: if is defined(ai_suggestion) then ai_suggestion else null, agent_decision: if is defined(agent_decision) then agent_decision else null, agent_justification: if is defined(agent_justification) then agent_justification else null}" target="body" />
+        </zeebe:ioMapping>
+        <zeebe:taskHeaders>
+          <zeebe:header key="resultExpression" value="={return_id: response.body.return_id}" />
+          <zeebe:header key="retryBackoff" value="PT0S" />
+        </zeebe:taskHeaders>
       </bpmn:extensionElements>
       <bpmn:incoming>Flow_GW_Autorise_Task_RMA</bpmn:incoming>
       <bpmn:outgoing>Flow_Task_RMA_Task_Instructions</bpmn:outgoing>
     </bpmn:serviceTask>
     <bpmn:serviceTask id="Task_Instructions" name="Envoyer les instructions de retour">
       <bpmn:extensionElements>
-      <zeebe:taskDefinition type="io.camunda:http-json:1" />
-      <zeebe:ioMapping>
-        <zeebe:input source="noAuth" target="authentication.type" />
-        <zeebe:input source="POST" target="method" />
-        <zeebe:input source='="http://host.docker.internal:8000" + "/ai/generate-response"' target="url" />
-        <zeebe:input source='={"Content-Type":"application/json"}' target="headers" />
-        <zeebe:input source='={order_id: if is defined(order_id) then order_id else null, return_id: if is defined(return_id) then return_id else null, type: "instructions"}' target="body" />
-      </zeebe:ioMapping>
-      <zeebe:taskHeaders>
-        <zeebe:header key="resultExpression" value="={instructions_text: response.body.message}" />
-        <zeebe:header key="retryBackoff" value="PT0S" />
-      </zeebe:taskHeaders>
+        <zeebe:taskDefinition type="io.camunda:http-json:1" />
+        <zeebe:ioMapping>
+          <zeebe:input source="noAuth" target="authentication.type" />
+          <zeebe:input source="POST" target="method" />
+          <zeebe:input source="=&#34;http://host.docker.internal:8000&#34; + &#34;/ai/generate-response&#34;" target="url" />
+          <zeebe:input source="={&#34;Content-Type&#34;:&#34;application/json&#34;}" target="headers" />
+          <zeebe:input source="={order_id: if is defined(order_id) then order_id else null, return_id: if is defined(return_id) then return_id else null, type: &#34;instructions&#34;}" target="body" />
+        </zeebe:ioMapping>
+        <zeebe:taskHeaders>
+          <zeebe:header key="resultExpression" value="={instructions_text: response.body.message}" />
+          <zeebe:header key="retryBackoff" value="PT0S" />
+        </zeebe:taskHeaders>
       </bpmn:extensionElements>
       <bpmn:incoming>Flow_Task_RMA_Task_Instructions</bpmn:incoming>
       <bpmn:outgoing>Flow_Task_Instructions_Task_Reception</bpmn:outgoing>
     </bpmn:serviceTask>
     <bpmn:userTask id="Task_Reception" name="Confirmer la réception du produit">
       <bpmn:extensionElements>
-      <zeebe:userTask />
-      <zeebe:formDefinition formId="form-reception-produit" />
+        <zeebe:userTask />
+        <zeebe:formDefinition formId="form-reception-produit" />
       </bpmn:extensionElements>
       <bpmn:incoming>Flow_Task_Instructions_Task_Reception</bpmn:incoming>
       <bpmn:outgoing>Flow_Task_Reception_Task_Inspection</bpmn:outgoing>
     </bpmn:userTask>
-    <bpmn:boundaryEvent id="Evt_NonRecu" name="Produit non reçu sous 72 h" attachedToRef="Task_Reception" cancelActivity="false">
+    <bpmn:boundaryEvent id="Evt_NonRecu" name="Produit non reçu sous 72 h" cancelActivity="false" attachedToRef="Task_Reception">
       <bpmn:outgoing>Flow_Evt_NonRecu_Task_RelanceClient</bpmn:outgoing>
-      <bpmn:timerEventDefinition><bpmn:timeDuration xsi:type="bpmn:tFormalExpression">PT72H</bpmn:timeDuration></bpmn:timerEventDefinition>
+      <bpmn:timerEventDefinition>
+        <bpmn:timeDuration xsi:type="bpmn:tFormalExpression">PT72H</bpmn:timeDuration>
+      </bpmn:timerEventDefinition>
     </bpmn:boundaryEvent>
     <bpmn:scriptTask id="Task_RelanceClient" name="Relancer le client">
       <bpmn:extensionElements>
-      <zeebe:script expression="=if is defined(reminder_count) then reminder_count + 1 else 1" resultVariable="reminder_count" />
+        <zeebe:script expression="=if is defined(reminder_count) then reminder_count + 1 else 1" resultVariable="reminder_count" />
       </bpmn:extensionElements>
       <bpmn:incoming>Flow_Evt_NonRecu_Task_RelanceClient</bpmn:incoming>
       <bpmn:outgoing>Flow_Task_RelanceClient_End_Relance</bpmn:outgoing>
@@ -204,16 +208,16 @@
     </bpmn:endEvent>
     <bpmn:userTask id="Task_Inspection" name="Inspecter le produit">
       <bpmn:extensionElements>
-      <zeebe:userTask />
-      <zeebe:formDefinition formId="form-inspection-produit" />
+        <zeebe:userTask />
+        <zeebe:formDefinition formId="form-inspection-produit" />
       </bpmn:extensionElements>
       <bpmn:incoming>Flow_Task_Reception_Task_Inspection</bpmn:incoming>
       <bpmn:outgoing>Flow_Task_Inspection_Task_Resolution</bpmn:outgoing>
     </bpmn:userTask>
     <bpmn:userTask id="Task_Resolution" name="Valider la résolution finale">
       <bpmn:extensionElements>
-      <zeebe:userTask />
-      <zeebe:formDefinition formId="form-resolution-sav" />
+        <zeebe:userTask />
+        <zeebe:formDefinition formId="form-resolution-sav" />
       </bpmn:extensionElements>
       <bpmn:incoming>Flow_Task_Inspection_Task_Resolution</bpmn:incoming>
       <bpmn:outgoing>Flow_Task_Resolution_Sub_Execution</bpmn:outgoing>
@@ -226,19 +230,19 @@
       </bpmn:startEvent>
       <bpmn:serviceTask id="Task_Exec" name="Remboursement / échange / réparation simulé">
         <bpmn:extensionElements>
-      <zeebe:taskDefinition type="io.camunda:http-json:1" />
-      <zeebe:ioMapping>
-        <zeebe:input source="noAuth" target="authentication.type" />
-        <zeebe:input source="POST" target="method" />
-        <zeebe:input source='="http://host.docker.internal:8000" + "/returns/" + string(return_id) + "/execute-resolution"' target="url" />
-        <zeebe:input source='={"Content-Type":"application/json"}' target="headers" />
-        <zeebe:input source="={final_resolution: if is defined(final_resolution) then final_resolution else null}" target="body" />
-      </zeebe:ioMapping>
-      <zeebe:taskHeaders>
-        <zeebe:header key="resultExpression" value="={resolution_status: response.body.resolution_status}" />
-        <zeebe:header key="errorExpression" value="=if error != null then bpmnError(&quot;EXEC_FAILED&quot;, &quot;Échec de l'exécution&quot;) else null" />
-        <zeebe:header key="retryBackoff" value="PT0S" />
-      </zeebe:taskHeaders>
+          <zeebe:taskDefinition type="io.camunda:http-json:1" />
+          <zeebe:ioMapping>
+            <zeebe:input source="noAuth" target="authentication.type" />
+            <zeebe:input source="POST" target="method" />
+            <zeebe:input source="=&#34;http://host.docker.internal:8000&#34; + &#34;/returns/&#34; + string(return_id) + &#34;/execute-resolution&#34;" target="url" />
+            <zeebe:input source="={&#34;Content-Type&#34;:&#34;application/json&#34;}" target="headers" />
+            <zeebe:input source="={final_resolution: if is defined(final_resolution) then final_resolution else null}" target="body" />
+          </zeebe:ioMapping>
+          <zeebe:taskHeaders>
+            <zeebe:header key="resultExpression" value="={resolution_status: response.body.resolution_status}" />
+            <zeebe:header key="errorExpression" value="=if error != null then bpmnError(&#34;EXEC_FAILED&#34;, &#34;Échec de l&#39;exécution&#34;) else null" />
+            <zeebe:header key="retryBackoff" value="PT0S" />
+          </zeebe:taskHeaders>
         </bpmn:extensionElements>
         <bpmn:incoming>Flow_Start_Exec_Task_Exec</bpmn:incoming>
         <bpmn:outgoing>Flow_Task_Exec_End_Exec</bpmn:outgoing>
@@ -249,14 +253,14 @@
       <bpmn:sequenceFlow id="Flow_Start_Exec_Task_Exec" sourceRef="Start_Exec" targetRef="Task_Exec" />
       <bpmn:sequenceFlow id="Flow_Task_Exec_End_Exec" sourceRef="Task_Exec" targetRef="End_Exec" />
     </bpmn:subProcess>
-    <bpmn:boundaryEvent id="Evt_ExecErr" name="Exécution en échec" attachedToRef="Sub_Execution" cancelActivity="true">
+    <bpmn:boundaryEvent id="Evt_ExecErr" name="Exécution en échec" attachedToRef="Sub_Execution">
       <bpmn:outgoing>Flow_Evt_ExecErr_Task_Manuel</bpmn:outgoing>
       <bpmn:errorEventDefinition id="ErrDef_Exec" errorRef="Error_Exec" />
     </bpmn:boundaryEvent>
-    <bpmn:userTask id="Task_Manuel" name="Traiter manuellement l'échec d'exécution">
+    <bpmn:userTask id="Task_Manuel" name="Traiter manuellement l&#39;échec d&#39;exécution">
       <bpmn:extensionElements>
-      <zeebe:userTask />
-      <zeebe:formDefinition formId="form-resolution-sav" />
+        <zeebe:userTask />
+        <zeebe:formDefinition formId="form-resolution-sav" />
       </bpmn:extensionElements>
       <bpmn:incoming>Flow_Evt_ExecErr_Task_Manuel</bpmn:incoming>
       <bpmn:outgoing>Flow_Task_Manuel_GW_Fusion</bpmn:outgoing>
@@ -269,52 +273,52 @@
     </bpmn:exclusiveGateway>
     <bpmn:serviceTask id="Task_Reponse" name="Générer la réponse finale">
       <bpmn:extensionElements>
-      <zeebe:taskDefinition type="io.camunda:http-json:1" />
-      <zeebe:ioMapping>
-        <zeebe:input source="noAuth" target="authentication.type" />
-        <zeebe:input source="POST" target="method" />
-        <zeebe:input source='="http://host.docker.internal:8000" + "/ai/generate-response"' target="url" />
-        <zeebe:input source='={"Content-Type":"application/json"}' target="headers" />
-        <zeebe:input source='={order_id: if is defined(order_id) then order_id else null, return_id: if is defined(return_id) then return_id else null, agent_decision: if is defined(agent_decision) then agent_decision else null, agent_justification: if is defined(agent_justification) then agent_justification else null, final_resolution: if is defined(final_resolution) then final_resolution else null, type: "final"}' target="body" />
-      </zeebe:ioMapping>
-      <zeebe:taskHeaders>
-        <zeebe:header key="resultExpression" value="={final_message: response.body.message}" />
-        <zeebe:header key="retryBackoff" value="PT0S" />
-      </zeebe:taskHeaders>
+        <zeebe:taskDefinition type="io.camunda:http-json:1" />
+        <zeebe:ioMapping>
+          <zeebe:input source="noAuth" target="authentication.type" />
+          <zeebe:input source="POST" target="method" />
+          <zeebe:input source="=&#34;http://host.docker.internal:8000&#34; + &#34;/ai/generate-response&#34;" target="url" />
+          <zeebe:input source="={&#34;Content-Type&#34;:&#34;application/json&#34;}" target="headers" />
+          <zeebe:input source="={order_id: if is defined(order_id) then order_id else null, return_id: if is defined(return_id) then return_id else null, agent_decision: if is defined(agent_decision) then agent_decision else null, agent_justification: if is defined(agent_justification) then agent_justification else null, final_resolution: if is defined(final_resolution) then final_resolution else null, type: &#34;final&#34;}" target="body" />
+        </zeebe:ioMapping>
+        <zeebe:taskHeaders>
+          <zeebe:header key="resultExpression" value="={final_message: response.body.message}" />
+          <zeebe:header key="retryBackoff" value="PT0S" />
+        </zeebe:taskHeaders>
       </bpmn:extensionElements>
       <bpmn:incoming>Flow_GW_Fusion_Task_Reponse</bpmn:incoming>
       <bpmn:outgoing>Flow_Task_Reponse_Task_Notifier</bpmn:outgoing>
     </bpmn:serviceTask>
     <bpmn:serviceTask id="Task_Notifier" name="Notifier le client">
       <bpmn:extensionElements>
-      <zeebe:taskDefinition type="io.camunda:http-json:1" />
-      <zeebe:ioMapping>
-        <zeebe:input source="noAuth" target="authentication.type" />
-        <zeebe:input source="POST" target="method" />
-        <zeebe:input source='="http://host.docker.internal:8000" + "/returns/" + string(return_id) + "/notify"' target="url" />
-        <zeebe:input source='={"Content-Type":"application/json"}' target="headers" />
-        <zeebe:input source="={final_message: if is defined(final_message) then final_message else null}" target="body" />
-      </zeebe:ioMapping>
-      <zeebe:taskHeaders>
-        <zeebe:header key="resultVariable" value="notification_result" />
-        <zeebe:header key="retryBackoff" value="PT0S" />
-      </zeebe:taskHeaders>
+        <zeebe:taskDefinition type="io.camunda:http-json:1" />
+        <zeebe:ioMapping>
+          <zeebe:input source="noAuth" target="authentication.type" />
+          <zeebe:input source="POST" target="method" />
+          <zeebe:input source="=&#34;http://host.docker.internal:8000&#34; + &#34;/returns/&#34; + string(return_id) + &#34;/notify&#34;" target="url" />
+          <zeebe:input source="={&#34;Content-Type&#34;:&#34;application/json&#34;}" target="headers" />
+          <zeebe:input source="={final_message: if is defined(final_message) then final_message else null}" target="body" />
+        </zeebe:ioMapping>
+        <zeebe:taskHeaders>
+          <zeebe:header key="resultVariable" value="notification_result" />
+          <zeebe:header key="retryBackoff" value="PT0S" />
+        </zeebe:taskHeaders>
       </bpmn:extensionElements>
       <bpmn:incoming>Flow_Task_Reponse_Task_Notifier</bpmn:incoming>
       <bpmn:outgoing>Flow_Task_Notifier_Task_Cloture</bpmn:outgoing>
     </bpmn:serviceTask>
     <bpmn:serviceTask id="Task_Cloture" name="Clôturer le dossier">
       <bpmn:extensionElements>
-      <zeebe:taskDefinition type="io.camunda:http-json:1" />
-      <zeebe:ioMapping>
-        <zeebe:input source="noAuth" target="authentication.type" />
-        <zeebe:input source="POST" target="method" />
-        <zeebe:input source='="http://host.docker.internal:8000" + "/returns/" + string(return_id) + "/close"' target="url" />
-      </zeebe:ioMapping>
-      <zeebe:taskHeaders>
-        <zeebe:header key="resultVariable" value="close_result" />
-        <zeebe:header key="retryBackoff" value="PT0S" />
-      </zeebe:taskHeaders>
+        <zeebe:taskDefinition type="io.camunda:http-json:1" />
+        <zeebe:ioMapping>
+          <zeebe:input source="noAuth" target="authentication.type" />
+          <zeebe:input source="POST" target="method" />
+          <zeebe:input source="=&#34;http://host.docker.internal:8000&#34; + &#34;/returns/&#34; + string(return_id) + &#34;/close&#34;" target="url" />
+        </zeebe:ioMapping>
+        <zeebe:taskHeaders>
+          <zeebe:header key="resultVariable" value="close_result" />
+          <zeebe:header key="retryBackoff" value="PT0S" />
+        </zeebe:taskHeaders>
       </bpmn:extensionElements>
       <bpmn:incoming>Flow_Task_Notifier_Task_Cloture</bpmn:incoming>
       <bpmn:outgoing>Flow_Task_Cloture_End_Termine</bpmn:outgoing>
@@ -324,8 +328,8 @@
     </bpmn:endEvent>
     <bpmn:userTask id="Task_Correction" name="Demander une correction">
       <bpmn:extensionElements>
-      <zeebe:userTask />
-      <zeebe:formDefinition formId="form-complement-information" />
+        <zeebe:userTask />
+        <zeebe:formDefinition formId="form-complement-information" />
       </bpmn:extensionElements>
       <bpmn:incoming>Flow_GW_Trouve_Task_Correction</bpmn:incoming>
       <bpmn:outgoing>Flow_Task_Correction_GW_Correction</bpmn:outgoing>
@@ -337,8 +341,8 @@
     </bpmn:exclusiveGateway>
     <bpmn:userTask id="Task_Complement" name="Demander un complément">
       <bpmn:extensionElements>
-      <zeebe:userTask />
-      <zeebe:formDefinition formId="form-complement-information" />
+        <zeebe:userTask />
+        <zeebe:formDefinition formId="form-complement-information" />
       </bpmn:extensionElements>
       <bpmn:incoming>Flow_GW_Complete_Task_Complement</bpmn:incoming>
       <bpmn:outgoing>Flow_Task_Complement_Task_Verif</bpmn:outgoing>
@@ -346,20 +350,20 @@
     <bpmn:sequenceFlow id="Flow_Start_Demande_Task_Saisie" sourceRef="Start_Demande" targetRef="Task_Saisie" />
     <bpmn:sequenceFlow id="Flow_Task_Saisie_Task_Commande" sourceRef="Task_Saisie" targetRef="Task_Commande" />
     <bpmn:sequenceFlow id="Flow_Task_Commande_GW_Trouve" sourceRef="Task_Commande" targetRef="GW_Trouve" />
-    <bpmn:sequenceFlow id="Flow_GW_Trouve_Task_Verif" sourceRef="GW_Trouve" targetRef="Task_Verif" name="Oui">
+    <bpmn:sequenceFlow id="Flow_GW_Trouve_Task_Verif" name="Oui" sourceRef="GW_Trouve" targetRef="Task_Verif">
       <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=order_found = true</bpmn:conditionExpression>
     </bpmn:sequenceFlow>
-    <bpmn:sequenceFlow id="Flow_GW_Trouve_Task_Correction" sourceRef="GW_Trouve" targetRef="Task_Correction" name="Non" />
+    <bpmn:sequenceFlow id="Flow_GW_Trouve_Task_Correction" name="Non" sourceRef="GW_Trouve" targetRef="Task_Correction" />
     <bpmn:sequenceFlow id="Flow_Task_Correction_GW_Correction" sourceRef="Task_Correction" targetRef="GW_Correction" />
-    <bpmn:sequenceFlow id="Flow_GW_Correction_Task_Commande" sourceRef="GW_Correction" targetRef="Task_Commande" name="Reçue" />
-    <bpmn:sequenceFlow id="Flow_GW_Correction_Task_Enregistrement" sourceRef="GW_Correction" targetRef="Task_Enregistrement" name="Abandon">
+    <bpmn:sequenceFlow id="Flow_GW_Correction_Task_Commande" name="Reçue" sourceRef="GW_Correction" targetRef="Task_Commande" />
+    <bpmn:sequenceFlow id="Flow_GW_Correction_Task_Enregistrement" name="Abandon" sourceRef="GW_Correction" targetRef="Task_Enregistrement">
       <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=is defined(correction_abandoned) and correction_abandoned = true</bpmn:conditionExpression>
     </bpmn:sequenceFlow>
     <bpmn:sequenceFlow id="Flow_Task_Verif_GW_Complete" sourceRef="Task_Verif" targetRef="GW_Complete" />
-    <bpmn:sequenceFlow id="Flow_GW_Complete_Task_Eligibilite" sourceRef="GW_Complete" targetRef="Task_Eligibilite" name="Oui">
+    <bpmn:sequenceFlow id="Flow_GW_Complete_Task_Eligibilite" name="Oui" sourceRef="GW_Complete" targetRef="Task_Eligibilite">
       <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=is_complete = true</bpmn:conditionExpression>
     </bpmn:sequenceFlow>
-    <bpmn:sequenceFlow id="Flow_GW_Complete_Task_Complement" sourceRef="GW_Complete" targetRef="Task_Complement" name="Non" />
+    <bpmn:sequenceFlow id="Flow_GW_Complete_Task_Complement" name="Non" sourceRef="GW_Complete" targetRef="Task_Complement" />
     <bpmn:sequenceFlow id="Flow_Task_Complement_Task_Verif" sourceRef="Task_Complement" targetRef="Task_Verif" />
     <bpmn:sequenceFlow id="Flow_Task_Eligibilite_Task_AI" sourceRef="Task_Eligibilite" targetRef="Task_AI" />
     <bpmn:sequenceFlow id="Flow_Task_AI_Task_Autor" sourceRef="Task_AI" targetRef="Task_Autor" />
@@ -368,10 +372,10 @@
     <bpmn:sequenceFlow id="Flow_Task_Autor_GW_Autorise" sourceRef="Task_Autor" targetRef="GW_Autorise" />
     <bpmn:sequenceFlow id="Flow_Evt_SLA_Task_RelanceSAV" sourceRef="Evt_SLA" targetRef="Task_RelanceSAV" />
     <bpmn:sequenceFlow id="Flow_Task_RelanceSAV_End_Escalade" sourceRef="Task_RelanceSAV" targetRef="End_Escalade" />
-    <bpmn:sequenceFlow id="Flow_GW_Autorise_Task_RMA" sourceRef="GW_Autorise" targetRef="Task_RMA" name="Autorisé">
+    <bpmn:sequenceFlow id="Flow_GW_Autorise_Task_RMA" name="Autorisé" sourceRef="GW_Autorise" targetRef="Task_RMA">
       <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=agent_decision = "authorized"</bpmn:conditionExpression>
     </bpmn:sequenceFlow>
-    <bpmn:sequenceFlow id="Flow_GW_Autorise_Task_Enregistrement" sourceRef="GW_Autorise" targetRef="Task_Enregistrement" name="Refusé" />
+    <bpmn:sequenceFlow id="Flow_GW_Autorise_Task_Enregistrement" name="Refusé" sourceRef="GW_Autorise" targetRef="Task_Enregistrement" />
     <bpmn:sequenceFlow id="Flow_Task_Enregistrement_GW_Fusion" sourceRef="Task_Enregistrement" targetRef="GW_Fusion" />
     <bpmn:sequenceFlow id="Flow_Task_RMA_Task_Instructions" sourceRef="Task_RMA" targetRef="Task_Instructions" />
     <bpmn:sequenceFlow id="Flow_Task_Instructions_Task_Reception" sourceRef="Task_Instructions" targetRef="Task_Reception" />
@@ -391,338 +395,340 @@
   <bpmndi:BPMNDiagram id="BPMNDiagram_1">
     <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="returnflow_to_be">
       <bpmndi:BPMNShape id="Start_Demande_di" bpmnElement="Start_Demande">
-        <dc:Bounds x="162" y="282" width="36" height="36" />
+        <dc:Bounds x="162" y="162" width="36" height="36" />
         <bpmndi:BPMNLabel>
-          <dc:Bounds x="130" y="322" width="100" height="27" />
+          <dc:Bounds x="133" y="202" width="95" height="27" />
         </bpmndi:BPMNLabel>
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Task_Saisie_di" bpmnElement="Task_Saisie">
-        <dc:Bounds x="250" y="260" width="100" height="80" />
+        <dc:Bounds x="250" y="140" width="100" height="80" />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Task_Commande_di" bpmnElement="Task_Commande">
-        <dc:Bounds x="400" y="260" width="100" height="80" />
+        <dc:Bounds x="400" y="140" width="100" height="80" />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="GW_Trouve_di" bpmnElement="GW_Trouve" isMarkerVisible="true">
-        <dc:Bounds x="565" y="275" width="50" height="50" />
+        <dc:Bounds x="565" y="155" width="50" height="50" />
         <bpmndi:BPMNLabel>
-          <dc:Bounds x="540" y="228" width="100" height="40" />
+          <dc:Bounds x="551" y="108" width="78" height="27" />
         </bpmndi:BPMNLabel>
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Task_Verif_di" bpmnElement="Task_Verif">
-        <dc:Bounds x="680" y="260" width="100" height="80" />
+        <dc:Bounds x="680" y="140" width="100" height="80" />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="GW_Complete_di" bpmnElement="GW_Complete" isMarkerVisible="true">
-        <dc:Bounds x="845" y="275" width="50" height="50" />
+        <dc:Bounds x="845" y="155" width="50" height="50" />
         <bpmndi:BPMNLabel>
-          <dc:Bounds x="820" y="228" width="100" height="40" />
+          <dc:Bounds x="822" y="108" width="96" height="27" />
         </bpmndi:BPMNLabel>
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Task_Eligibilite_di" bpmnElement="Task_Eligibilite">
-        <dc:Bounds x="960" y="260" width="100" height="80" />
+        <dc:Bounds x="960" y="140" width="100" height="80" />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Task_AI_di" bpmnElement="Task_AI">
-        <dc:Bounds x="1100" y="260" width="100" height="80" />
-      </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Evt_AI_Err_di" bpmnElement="Evt_AI_Err">
-        <dc:Bounds x="1132" y="322" width="36" height="36" />
-        <bpmndi:BPMNLabel>
-          <dc:Bounds x="1172" y="345" width="90" height="27" />
-        </bpmndi:BPMNLabel>
+        <dc:Bounds x="1100" y="140" width="100" height="80" />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Task_Fallback_di" bpmnElement="Task_Fallback">
-        <dc:Bounds x="1100" y="440" width="100" height="80" />
+        <dc:Bounds x="1100" y="320" width="100" height="80" />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Task_Autor_di" bpmnElement="Task_Autor">
-        <dc:Bounds x="1250" y="260" width="100" height="80" />
-      </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Evt_SLA_di" bpmnElement="Evt_SLA">
-        <dc:Bounds x="1312" y="322" width="36" height="36" />
-        <bpmndi:BPMNLabel>
-          <dc:Bounds x="1352" y="345" width="90" height="40" />
-        </bpmndi:BPMNLabel>
+        <dc:Bounds x="1250" y="140" width="100" height="80" />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Task_RelanceSAV_di" bpmnElement="Task_RelanceSAV">
-        <dc:Bounds x="1280" y="520" width="100" height="80" />
+        <dc:Bounds x="1280" y="400" width="100" height="80" />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="End_Escalade_di" bpmnElement="End_Escalade">
-        <dc:Bounds x="1212" y="542" width="36" height="36" />
+        <dc:Bounds x="1212" y="422" width="36" height="36" />
         <bpmndi:BPMNLabel>
-          <dc:Bounds x="1180" y="582" width="100" height="27" />
+          <dc:Bounds x="1185" y="462" width="90" height="14" />
         </bpmndi:BPMNLabel>
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="GW_Autorise_di" bpmnElement="GW_Autorise" isMarkerVisible="true">
-        <dc:Bounds x="1415" y="275" width="50" height="50" />
+        <dc:Bounds x="1415" y="155" width="50" height="50" />
         <bpmndi:BPMNLabel>
-          <dc:Bounds x="1390" y="228" width="100" height="40" />
+          <dc:Bounds x="1398" y="108" width="85" height="14" />
         </bpmndi:BPMNLabel>
-      </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Task_Enregistrement_di" bpmnElement="Task_Enregistrement">
-        <dc:Bounds x="1390" y="580" width="100" height="80" />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Task_RMA_di" bpmnElement="Task_RMA">
-        <dc:Bounds x="1530" y="260" width="100" height="80" />
+        <dc:Bounds x="1530" y="140" width="100" height="80" />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Task_Instructions_di" bpmnElement="Task_Instructions">
-        <dc:Bounds x="1670" y="260" width="100" height="80" />
+        <dc:Bounds x="1670" y="140" width="100" height="80" />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Task_Reception_di" bpmnElement="Task_Reception">
-        <dc:Bounds x="1810" y="260" width="100" height="80" />
-      </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Evt_NonRecu_di" bpmnElement="Evt_NonRecu">
-        <dc:Bounds x="1842" y="322" width="36" height="36" />
-        <bpmndi:BPMNLabel>
-          <dc:Bounds x="1882" y="345" width="90" height="40" />
-        </bpmndi:BPMNLabel>
+        <dc:Bounds x="1810" y="140" width="100" height="80" />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Task_RelanceClient_di" bpmnElement="Task_RelanceClient">
-        <dc:Bounds x="1810" y="480" width="100" height="80" />
+        <dc:Bounds x="1810" y="360" width="100" height="80" />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="End_Relance_di" bpmnElement="End_Relance">
-        <dc:Bounds x="1942" y="502" width="36" height="36" />
+        <dc:Bounds x="1942" y="382" width="36" height="36" />
         <bpmndi:BPMNLabel>
-          <dc:Bounds x="1910" y="542" width="100" height="27" />
+          <dc:Bounds x="1917" y="422" width="86" height="14" />
         </bpmndi:BPMNLabel>
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Task_Inspection_di" bpmnElement="Task_Inspection">
-        <dc:Bounds x="1950" y="260" width="100" height="80" />
+        <dc:Bounds x="1950" y="140" width="100" height="80" />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Task_Resolution_di" bpmnElement="Task_Resolution">
-        <dc:Bounds x="2090" y="260" width="100" height="80" />
+        <dc:Bounds x="2090" y="140" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_Enregistrement_di" bpmnElement="Task_Enregistrement">
+        <dc:Bounds x="1410" y="480" width="100" height="80" />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Sub_Execution_di" bpmnElement="Sub_Execution" isExpanded="true">
-        <dc:Bounds x="2225" y="200" width="350" height="200" />
+        <dc:Bounds x="2225" y="80" width="350" height="200" />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Start_Exec_di" bpmnElement="Start_Exec">
-        <dc:Bounds x="2242" y="282" width="36" height="36" />
+        <dc:Bounds x="2242" y="162" width="36" height="36" />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Task_Exec_di" bpmnElement="Task_Exec">
-        <dc:Bounds x="2350" y="260" width="100" height="80" />
+        <dc:Bounds x="2350" y="140" width="100" height="80" />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="End_Exec_di" bpmnElement="End_Exec">
-        <dc:Bounds x="2522" y="282" width="36" height="36" />
+        <dc:Bounds x="2522" y="162" width="36" height="36" />
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Evt_ExecErr_di" bpmnElement="Evt_ExecErr">
-        <dc:Bounds x="2382" y="382" width="36" height="36" />
-        <bpmndi:BPMNLabel>
-          <dc:Bounds x="2422" y="405" width="100" height="40" />
-        </bpmndi:BPMNLabel>
-      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="Flow_Start_Exec_Task_Exec_di" bpmnElement="Flow_Start_Exec_Task_Exec">
+        <di:waypoint x="2278" y="180" />
+        <di:waypoint x="2350" y="180" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_Task_Exec_End_Exec_di" bpmnElement="Flow_Task_Exec_End_Exec">
+        <di:waypoint x="2450" y="180" />
+        <di:waypoint x="2522" y="180" />
+      </bpmndi:BPMNEdge>
       <bpmndi:BPMNShape id="Task_Manuel_di" bpmnElement="Task_Manuel">
-        <dc:Bounds x="2350" y="500" width="100" height="80" />
+        <dc:Bounds x="2350" y="380" width="100" height="80" />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="GW_Fusion_di" bpmnElement="GW_Fusion" isMarkerVisible="true">
-        <dc:Bounds x="2675" y="275" width="50" height="50" />
+        <dc:Bounds x="2675" y="155" width="50" height="50" />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Task_Reponse_di" bpmnElement="Task_Reponse">
-        <dc:Bounds x="2780" y="260" width="100" height="80" />
+        <dc:Bounds x="2780" y="140" width="100" height="80" />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Task_Notifier_di" bpmnElement="Task_Notifier">
-        <dc:Bounds x="2910" y="260" width="100" height="80" />
+        <dc:Bounds x="2910" y="140" width="100" height="80" />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Task_Cloture_di" bpmnElement="Task_Cloture">
-        <dc:Bounds x="3040" y="260" width="100" height="80" />
+        <dc:Bounds x="3040" y="140" width="100" height="80" />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="End_Termine_di" bpmnElement="End_Termine">
-        <dc:Bounds x="3182" y="282" width="36" height="36" />
+        <dc:Bounds x="3182" y="162" width="36" height="36" />
         <bpmndi:BPMNLabel>
-          <dc:Bounds x="3150" y="322" width="100" height="27" />
+          <dc:Bounds x="3161" y="202" width="78" height="14" />
         </bpmndi:BPMNLabel>
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Task_Correction_di" bpmnElement="Task_Correction">
-        <dc:Bounds x="540" y="440" width="100" height="80" />
+        <dc:Bounds x="540" y="320" width="100" height="80" />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="GW_Correction_di" bpmnElement="GW_Correction" isMarkerVisible="true">
-        <dc:Bounds x="665" y="455" width="50" height="50" />
+        <dc:Bounds x="665" y="335" width="50" height="50" />
         <bpmndi:BPMNLabel>
-          <dc:Bounds x="580" y="522" width="100" height="27" />
+          <dc:Bounds x="582" y="402" width="97" height="14" />
         </bpmndi:BPMNLabel>
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Task_Complement_di" bpmnElement="Task_Complement">
-        <dc:Bounds x="820" y="440" width="100" height="80" />
+        <dc:Bounds x="820" y="320" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Evt_ExecErr_di" bpmnElement="Evt_ExecErr">
+        <dc:Bounds x="2382" y="262" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="2424" y="285" width="97" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Evt_NonRecu_di" bpmnElement="Evt_NonRecu">
+        <dc:Bounds x="1842" y="202" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1887" y="225" width="81" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Evt_SLA_di" bpmnElement="Evt_SLA">
+        <dc:Bounds x="1312" y="202" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1352" y="225" width="90" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Evt_AI_Err_di" bpmnElement="Evt_AI_Err">
+        <dc:Bounds x="1132" y="202" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1181" y="225" width="72" height="14" />
+        </bpmndi:BPMNLabel>
       </bpmndi:BPMNShape>
       <bpmndi:BPMNEdge id="Flow_Start_Demande_Task_Saisie_di" bpmnElement="Flow_Start_Demande_Task_Saisie">
-        <di:waypoint x="198" y="300" />
-        <di:waypoint x="250" y="300" />
+        <di:waypoint x="198" y="180" />
+        <di:waypoint x="250" y="180" />
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_Task_Saisie_Task_Commande_di" bpmnElement="Flow_Task_Saisie_Task_Commande">
-        <di:waypoint x="350" y="300" />
-        <di:waypoint x="400" y="300" />
+        <di:waypoint x="350" y="180" />
+        <di:waypoint x="400" y="180" />
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_Task_Commande_GW_Trouve_di" bpmnElement="Flow_Task_Commande_GW_Trouve">
-        <di:waypoint x="500" y="300" />
-        <di:waypoint x="565" y="300" />
+        <di:waypoint x="500" y="180" />
+        <di:waypoint x="565" y="180" />
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_GW_Trouve_Task_Verif_di" bpmnElement="Flow_GW_Trouve_Task_Verif">
-        <di:waypoint x="615" y="300" />
-        <di:waypoint x="680" y="300" />
+        <di:waypoint x="615" y="180" />
+        <di:waypoint x="680" y="180" />
         <bpmndi:BPMNLabel>
-          <dc:Bounds x="623" y="278" width="60" height="14" />
+          <dc:Bounds x="644" y="158" width="18" height="14" />
         </bpmndi:BPMNLabel>
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_GW_Trouve_Task_Correction_di" bpmnElement="Flow_GW_Trouve_Task_Correction">
-        <di:waypoint x="590" y="325" />
-        <di:waypoint x="590" y="440" />
+        <di:waypoint x="590" y="205" />
+        <di:waypoint x="590" y="320" />
         <bpmndi:BPMNLabel>
-          <dc:Bounds x="596" y="329" width="60" height="14" />
+          <dc:Bounds x="616" y="209" width="21" height="14" />
         </bpmndi:BPMNLabel>
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_Task_Correction_GW_Correction_di" bpmnElement="Flow_Task_Correction_GW_Correction">
-        <di:waypoint x="640" y="480" />
-        <di:waypoint x="665" y="480" />
+        <di:waypoint x="640" y="360" />
+        <di:waypoint x="665" y="360" />
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_GW_Correction_Task_Commande_di" bpmnElement="Flow_GW_Correction_Task_Commande">
-        <di:waypoint x="690" y="455" />
-        <di:waypoint x="690" y="400" />
-        <di:waypoint x="450" y="400" />
-        <di:waypoint x="450" y="340" />
+        <di:waypoint x="690" y="335" />
+        <di:waypoint x="690" y="280" />
+        <di:waypoint x="450" y="280" />
+        <di:waypoint x="450" y="220" />
         <bpmndi:BPMNLabel>
-          <dc:Bounds x="696" y="459" width="60" height="14" />
+          <dc:Bounds x="710" y="339" width="32" height="14" />
         </bpmndi:BPMNLabel>
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_GW_Correction_Task_Enregistrement_di" bpmnElement="Flow_GW_Correction_Task_Enregistrement">
-        <di:waypoint x="690" y="505" />
-        <di:waypoint x="690" y="700" />
-        <di:waypoint x="1440" y="700" />
-        <di:waypoint x="1440" y="660" />
+        <di:waypoint x="690" y="385" />
+        <di:waypoint x="690" y="580" />
+        <di:waypoint x="1460" y="580" />
+        <di:waypoint x="1460" y="560" />
         <bpmndi:BPMNLabel>
-          <dc:Bounds x="696" y="509" width="60" height="14" />
+          <dc:Bounds x="704" y="389" width="45" height="14" />
         </bpmndi:BPMNLabel>
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_Task_Verif_GW_Complete_di" bpmnElement="Flow_Task_Verif_GW_Complete">
-        <di:waypoint x="780" y="300" />
-        <di:waypoint x="845" y="300" />
+        <di:waypoint x="780" y="180" />
+        <di:waypoint x="845" y="180" />
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_GW_Complete_Task_Eligibilite_di" bpmnElement="Flow_GW_Complete_Task_Eligibilite">
-        <di:waypoint x="895" y="300" />
-        <di:waypoint x="960" y="300" />
+        <di:waypoint x="895" y="180" />
+        <di:waypoint x="960" y="180" />
         <bpmndi:BPMNLabel>
-          <dc:Bounds x="903" y="278" width="60" height="14" />
+          <dc:Bounds x="924" y="158" width="18" height="14" />
         </bpmndi:BPMNLabel>
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_GW_Complete_Task_Complement_di" bpmnElement="Flow_GW_Complete_Task_Complement">
-        <di:waypoint x="870" y="325" />
-        <di:waypoint x="870" y="440" />
+        <di:waypoint x="870" y="205" />
+        <di:waypoint x="870" y="320" />
         <bpmndi:BPMNLabel>
-          <dc:Bounds x="876" y="329" width="60" height="14" />
+          <dc:Bounds x="896" y="209" width="21" height="14" />
         </bpmndi:BPMNLabel>
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_Task_Complement_Task_Verif_di" bpmnElement="Flow_Task_Complement_Task_Verif">
-        <di:waypoint x="820" y="480" />
-        <di:waypoint x="750" y="480" />
-        <di:waypoint x="750" y="340" />
+        <di:waypoint x="820" y="360" />
+        <di:waypoint x="750" y="360" />
+        <di:waypoint x="750" y="220" />
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_Task_Eligibilite_Task_AI_di" bpmnElement="Flow_Task_Eligibilite_Task_AI">
-        <di:waypoint x="1060" y="300" />
-        <di:waypoint x="1100" y="300" />
+        <di:waypoint x="1060" y="180" />
+        <di:waypoint x="1100" y="180" />
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_Task_AI_Task_Autor_di" bpmnElement="Flow_Task_AI_Task_Autor">
-        <di:waypoint x="1200" y="300" />
-        <di:waypoint x="1250" y="300" />
+        <di:waypoint x="1200" y="180" />
+        <di:waypoint x="1250" y="180" />
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_Evt_AI_Err_Task_Fallback_di" bpmnElement="Flow_Evt_AI_Err_Task_Fallback">
-        <di:waypoint x="1150" y="358" />
-        <di:waypoint x="1150" y="440" />
+        <di:waypoint x="1150" y="238" />
+        <di:waypoint x="1150" y="320" />
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_Task_Fallback_Task_Autor_di" bpmnElement="Flow_Task_Fallback_Task_Autor">
-        <di:waypoint x="1200" y="480" />
-        <di:waypoint x="1270" y="480" />
-        <di:waypoint x="1270" y="340" />
+        <di:waypoint x="1200" y="360" />
+        <di:waypoint x="1270" y="360" />
+        <di:waypoint x="1270" y="220" />
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_Task_Autor_GW_Autorise_di" bpmnElement="Flow_Task_Autor_GW_Autorise">
-        <di:waypoint x="1350" y="300" />
-        <di:waypoint x="1415" y="300" />
+        <di:waypoint x="1350" y="180" />
+        <di:waypoint x="1415" y="180" />
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_Evt_SLA_Task_RelanceSAV_di" bpmnElement="Flow_Evt_SLA_Task_RelanceSAV">
-        <di:waypoint x="1330" y="358" />
-        <di:waypoint x="1330" y="520" />
+        <di:waypoint x="1330" y="238" />
+        <di:waypoint x="1330" y="400" />
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_Task_RelanceSAV_End_Escalade_di" bpmnElement="Flow_Task_RelanceSAV_End_Escalade">
-        <di:waypoint x="1280" y="560" />
-        <di:waypoint x="1248" y="560" />
+        <di:waypoint x="1280" y="440" />
+        <di:waypoint x="1248" y="440" />
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_GW_Autorise_Task_RMA_di" bpmnElement="Flow_GW_Autorise_Task_RMA">
-        <di:waypoint x="1465" y="300" />
-        <di:waypoint x="1530" y="300" />
+        <di:waypoint x="1465" y="180" />
+        <di:waypoint x="1530" y="180" />
         <bpmndi:BPMNLabel>
-          <dc:Bounds x="1473" y="278" width="60" height="14" />
+          <dc:Bounds x="1483" y="158" width="41" height="14" />
         </bpmndi:BPMNLabel>
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_GW_Autorise_Task_Enregistrement_di" bpmnElement="Flow_GW_Autorise_Task_Enregistrement">
-        <di:waypoint x="1440" y="325" />
-        <di:waypoint x="1440" y="580" />
+        <di:waypoint x="1440" y="205" />
+        <di:waypoint x="1440" y="343" />
+        <di:waypoint x="1460" y="343" />
+        <di:waypoint x="1460" y="480" />
         <bpmndi:BPMNLabel>
-          <dc:Bounds x="1446" y="329" width="60" height="14" />
+          <dc:Bounds x="1479" y="342" width="35" height="14" />
         </bpmndi:BPMNLabel>
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_Task_Enregistrement_GW_Fusion_di" bpmnElement="Flow_Task_Enregistrement_GW_Fusion">
-        <di:waypoint x="1490" y="620" />
-        <di:waypoint x="2700" y="620" />
-        <di:waypoint x="2700" y="325" />
+        <di:waypoint x="1510" y="520" />
+        <di:waypoint x="2700" y="520" />
+        <di:waypoint x="2700" y="205" />
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_Task_RMA_Task_Instructions_di" bpmnElement="Flow_Task_RMA_Task_Instructions">
-        <di:waypoint x="1630" y="300" />
-        <di:waypoint x="1670" y="300" />
+        <di:waypoint x="1630" y="180" />
+        <di:waypoint x="1670" y="180" />
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_Task_Instructions_Task_Reception_di" bpmnElement="Flow_Task_Instructions_Task_Reception">
-        <di:waypoint x="1770" y="300" />
-        <di:waypoint x="1810" y="300" />
+        <di:waypoint x="1770" y="180" />
+        <di:waypoint x="1810" y="180" />
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_Task_Reception_Task_Inspection_di" bpmnElement="Flow_Task_Reception_Task_Inspection">
-        <di:waypoint x="1910" y="300" />
-        <di:waypoint x="1950" y="300" />
+        <di:waypoint x="1910" y="180" />
+        <di:waypoint x="1950" y="180" />
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_Evt_NonRecu_Task_RelanceClient_di" bpmnElement="Flow_Evt_NonRecu_Task_RelanceClient">
-        <di:waypoint x="1860" y="358" />
-        <di:waypoint x="1860" y="480" />
+        <di:waypoint x="1860" y="238" />
+        <di:waypoint x="1860" y="360" />
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_Task_RelanceClient_End_Relance_di" bpmnElement="Flow_Task_RelanceClient_End_Relance">
-        <di:waypoint x="1910" y="520" />
-        <di:waypoint x="1942" y="520" />
+        <di:waypoint x="1910" y="400" />
+        <di:waypoint x="1942" y="400" />
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_Task_Inspection_Task_Resolution_di" bpmnElement="Flow_Task_Inspection_Task_Resolution">
-        <di:waypoint x="2050" y="300" />
-        <di:waypoint x="2090" y="300" />
+        <di:waypoint x="2050" y="180" />
+        <di:waypoint x="2090" y="180" />
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_Task_Resolution_Sub_Execution_di" bpmnElement="Flow_Task_Resolution_Sub_Execution">
-        <di:waypoint x="2190" y="300" />
-        <di:waypoint x="2225" y="300" />
-      </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Flow_Start_Exec_Task_Exec_di" bpmnElement="Flow_Start_Exec_Task_Exec">
-        <di:waypoint x="2278" y="300" />
-        <di:waypoint x="2350" y="300" />
-      </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Flow_Task_Exec_End_Exec_di" bpmnElement="Flow_Task_Exec_End_Exec">
-        <di:waypoint x="2450" y="300" />
-        <di:waypoint x="2522" y="300" />
+        <di:waypoint x="2190" y="180" />
+        <di:waypoint x="2225" y="180" />
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_Sub_Execution_GW_Fusion_di" bpmnElement="Flow_Sub_Execution_GW_Fusion">
-        <di:waypoint x="2575" y="300" />
-        <di:waypoint x="2675" y="300" />
+        <di:waypoint x="2575" y="180" />
+        <di:waypoint x="2675" y="180" />
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_Evt_ExecErr_Task_Manuel_di" bpmnElement="Flow_Evt_ExecErr_Task_Manuel">
-        <di:waypoint x="2400" y="418" />
-        <di:waypoint x="2400" y="500" />
+        <di:waypoint x="2400" y="298" />
+        <di:waypoint x="2400" y="380" />
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_Task_Manuel_GW_Fusion_di" bpmnElement="Flow_Task_Manuel_GW_Fusion">
-        <di:waypoint x="2450" y="540" />
-        <di:waypoint x="2700" y="540" />
-        <di:waypoint x="2700" y="325" />
+        <di:waypoint x="2450" y="420" />
+        <di:waypoint x="2700" y="420" />
+        <di:waypoint x="2700" y="205" />
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_GW_Fusion_Task_Reponse_di" bpmnElement="Flow_GW_Fusion_Task_Reponse">
-        <di:waypoint x="2725" y="300" />
-        <di:waypoint x="2780" y="300" />
+        <di:waypoint x="2725" y="180" />
+        <di:waypoint x="2780" y="180" />
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_Task_Reponse_Task_Notifier_di" bpmnElement="Flow_Task_Reponse_Task_Notifier">
-        <di:waypoint x="2880" y="300" />
-        <di:waypoint x="2910" y="300" />
+        <di:waypoint x="2880" y="180" />
+        <di:waypoint x="2910" y="180" />
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_Task_Notifier_Task_Cloture_di" bpmnElement="Flow_Task_Notifier_Task_Cloture">
-        <di:waypoint x="3010" y="300" />
-        <di:waypoint x="3040" y="300" />
+        <di:waypoint x="3010" y="180" />
+        <di:waypoint x="3040" y="180" />
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_Task_Cloture_End_Termine_di" bpmnElement="Flow_Task_Cloture_End_Termine">
-        <di:waypoint x="3140" y="300" />
-        <di:waypoint x="3182" y="300" />
+        <di:waypoint x="3140" y="180" />
+        <di:waypoint x="3182" y="180" />
       </bpmndi:BPMNEdge>
     </bpmndi:BPMNPlane>
   </bpmndi:BPMNDiagram>
