@@ -1,0 +1,70 @@
+{
+  "schemaVersion": 11,
+  "type": "default",
+  "id": "form-cloture-dossier",
+  "components": [
+    {
+      "type": "text",
+      "id": "form-cloture-dossier-title",
+      "text": "# Clôture du dossier de retour"
+    },
+    {
+      "label": "Statut de résolution",
+      "type": "textfield",
+      "id": "form-cloture-dossier-resolution_status",
+      "key": "resolution_status",
+      "readonly": true
+    },
+    {
+      "label": "État de la notification client",
+      "type": "select",
+      "id": "form-cloture-dossier-customer_notification_status",
+      "key": "customer_notification_status",
+      "values": [
+        {
+          "label": "Envoyée",
+          "value": "sent"
+        },
+        {
+          "label": "Reprise à effectuer",
+          "value": "retry_pending"
+        },
+        {
+          "label": "Sans notification requise",
+          "value": "not_required"
+        }
+      ],
+      "validate": {
+        "required": true
+      }
+    },
+    {
+      "label": "Date et heure de clôture",
+      "type": "datetime",
+      "id": "form-cloture-dossier-closed_at",
+      "key": "closed_at",
+      "validate": {
+        "required": true
+      }
+    },
+    {
+      "label": "Note de clôture",
+      "type": "textarea",
+      "id": "form-cloture-dossier-closure_note",
+      "key": "closure_note"
+    },
+    {
+      "label": "Dossier clôturé",
+      "type": "checkbox",
+      "id": "form-cloture-dossier-caseClosed",
+      "key": "caseClosed",
+      "defaultValue": true
+    }
+  ],
+  "executionPlatform": "Camunda Cloud",
+  "executionPlatformVersion": "8.10.0",
+  "exporter": {
+    "name": "Camunda Modeler",
+    "version": "5.52.0"
+  }
+}

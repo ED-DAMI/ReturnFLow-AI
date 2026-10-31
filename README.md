@@ -1,6 +1,6 @@
 # ReturnFlow AI
 
-**Service après-vente : gestion d’un retour produit de la demande à la résolution**  
+**Gestion des retours de vêtements — cas d’étude académique inspiré des politiques publiques de SHEIN Maroc**  
 BPMN · Process Mining · Workflow AI
 
 Projet du module *BPMN, Process Mining & Workflow AI* — IDSI 3
@@ -11,30 +11,30 @@ Projet du module *BPMN, Process Mining & Workflow AI* — IDSI 3
 
 > **Statut :** ce document décrit le périmètre cible du projet. Les fonctionnalités sont à considérer comme prévues jusqu’à leur implémentation et leur validation.
 >
-> Les données, transports, remboursements, échanges et réparations sont simulés. Aucun paiement réel n’est effectué.
+> Le processus interne de SHEIN n’est pas reproduit et aucune donnée interne n’est utilisée. Les données, transports et opérations de remboursement sont simulés; aucun paiement réel n’est effectué.
 
 ---
 
 ## 1. Présentation
 
-ReturnFlow AI est un mini-système SAV intelligent permettant de gérer un retour produit depuis la demande du client jusqu’à la résolution et la clôture du dossier.
+ReturnFlow AI est un cas d’étude académique de gestion des retours de vêtements, inspiré des politiques publiques de SHEIN Maroc. Il ne décrit pas le processus interne réel de SHEIN.
 
 Le projet combine :
 
-- **BPMN** : modélisation AS-IS et TO-BE, puis exécution du processus TO-BE sur Camunda 8.
+- **BPMN** : processus manuel de référence AS-IS et processus cible TO-BE sur Camunda 8.10.
 - **Process Mining** : analyse d’event logs simulés avec PM4Py.
-- **Workflow AI** : analyse et rédaction assistées par un LLM via LangChain et OpenRouter.
+- **Workflow AI** : RAG sur PostgreSQL + pgvector pour retrouver les politiques; LLM via LangChain/OpenRouter pour classifier et extraire les faits; règles déterministes/DMN pour décider.
 
 ### Principe directeur
 
-> Camunda orchestre le processus. Les règles métier déterminent l’éligibilité. L’IA analyse, résume, propose et rédige. L’agent SAV valide les décisions métier.
+> Camunda orchestre. Le RAG retrouve les sources. Le LLM comprend la demande et extrait des faits. Les règles déterministes évaluent l’éligibilité. L’agent SAV valide la suite.
 
 Deux décisions sont distinguées :
 
-1. **Autoriser le retour**, avant l’expédition du produit.
-2. **Confirmer la résolution finale**, après réception et inspection.
+1. **Valider la proposition et le besoin d’un retour physique**, après l’évaluation des règles.
+2. **Confirmer le mode de traitement**, après réception et inspection si un retour physique est requis.
 
-L’autorisation de retour ne constitue donc pas une validation automatique du remboursement.
+La recommandation du LLM ne décide jamais seule de l’éligibilité.
 
 ---
 
@@ -57,17 +57,15 @@ L’autorisation de retour ne constitue donc pas une validation automatique du r
 
 - Saisie de la demande de retour.
 - Recherche de la commande et de l’article concerné.
-- Vérification des informations.
+- Vérification des informations et correction des références.
 - Demande de complément.
-- Contrôle d’éligibilité.
-- Analyse IA ou analyse manuelle.
-- Autorisation ou refus par l’agent SAV.
-- Création d’un identifiant de retour RMA.
+- Classification du motif et recherche de politiques via RAG.
+- Extraction de faits avec leurs sources, ou analyse manuelle de repli.
+- Contrôle déterministe de l’éligibilité et validation humaine.
 - Envoi des instructions de retour.
 - Réception simulée du produit.
-- Inspection du produit.
-- Validation de la résolution finale.
-- Remboursement, échange ou réparation simulé.
+- Inspection du vêtement, des étiquettes et de la conformité.
+- Remboursement simulé selon le mode validé, ou traitement manuel d’une exception.
 - Notification finale.
 - Clôture du dossier.
 - Analyse Process Mining.
@@ -81,14 +79,14 @@ L’autorisation de retour ne constitue donc pas une validation automatique du r
 - Portail client complet.
 - Données personnelles réelles.
 
-> Les règles et délais sont des hypothèses pédagogiques. Ils ne constituent pas une politique commerciale réelle ni une interprétation juridique.
+> Les règles du cas d’étude reprennent des politiques publiques citées; elles ne décrivent pas de processus interne SHEIN ni une interprétation juridique.
 
 ---
 
 ## 4. Architecture
 
 ```text
-Camunda 8
+Camunda 8.10
 BPMN · Forms · Tasklist · Operate
               │
               │ REST Connector
@@ -96,14 +94,16 @@ BPMN · Forms · Tasklist · Operate
          API FastAPI
 Validation · Règles · Gestion des erreurs
               │
-              ├──► SQLite
+              ├──► PostgreSQL
               │    Commandes · Articles · Retours
               │
-              ├──► policies.json
-              │    Règles pédagogiques
+              ├──► pgvector
+              │    Politiques · FAQ · Guides · Fiches produit
               │
               └──► LangChain → OpenRouter
-                   Analyse et rédaction IA
+                   Classification · Extraction · Réponse
+
+Éligibilité déterministe / DMN
 
 Event logs simulés AS-IS / TO-BE
               │
@@ -121,11 +121,11 @@ Schéma détaillé prévu : `docs/architecture.png`.
 | Acteur | Responsabilité |
 |--------|----------------|
 | Client | Soumettre la demande, fournir les compléments et retourner le produit |
-| Agent SAV | Autoriser le retour et valider la résolution finale |
+| Agent SAV | Valider la proposition après contrôle d’éligibilité et confirmer le traitement après inspection |
 | Agent entrepôt | Confirmer la réception et inspecter le produit |
 | Responsable SAV | Recevoir les escalades |
 | Système | Appliquer les règles, enregistrer les opérations et notifier |
-| Assistant IA | Analyser, résumer, proposer et rédiger |
+| Assistant IA | Classifier, résumer, proposer et rédiger avec des sources RAG |
 
 Pour la démonstration, certaines actions du client et de l’entrepôt sont représentées par des formulaires.
 
@@ -178,61 +178,39 @@ Ces problèmes sont représentés dans les données simulées.
 
 | # | Étape | Type BPMN prévu |
 |---|-------|-----------------|
-| 1 | Demande de retour reçue | Start Event |
-| 2 | Saisir la demande | User Task + Form |
-| 3 | Récupérer la commande et l’article | REST Service Task |
-| 4 | Commande et article trouvés ? | XOR Gateway |
-| 5 | Vérifier les informations | Service Task |
-| 6 | Demande complète ? | XOR Gateway |
-| 7 | Vérifier l’éligibilité | Service Task ou DMN |
-| 8 | Analyser la demande avec IA | REST Service Task |
-| 9 | Autoriser ou refuser le retour | User Task + Form |
-| 10 | Retour autorisé ? | XOR Gateway |
-| 11 | Créer le dossier RMA | REST Service Task |
-| 12 | Envoyer les instructions | Service Task |
-| 13 | Confirmer la réception du produit | User Task + Form |
-| 14 | Inspecter le produit | User Task + Form |
-| 15 | Valider la résolution finale | User Task + Form |
-| 16 | Exécuter la résolution | Sous-processus simulé |
-| 17 | Générer la réponse finale | REST Service Task + LLM |
-| 18 | Notifier le client | Service Task |
-| 19 | Clôturer le dossier | REST Service Task |
-| 20 | Dossier terminé | End Event |
+| 1 | Saisir la demande et récupérer commande/article/fiche produit | User Task + Service Task |
+| 2 | Corriger les références si la commande est introuvable | User Task + XOR Gateway |
+| 3 | Vérifier la complétude et demander un complément si nécessaire | Service Task + User Task + Timer 48 h |
+| 4 | Classifier le motif avec le LLM, puis vérifier sa disponibilité | Service Task + XOR Gateway |
+| 5 | Rechercher la politique avec RAG dans PostgreSQL/pgvector | Service Task + XOR Gateway |
+| 6 | Extraire les faits et les sources, ou effectuer une analyse manuelle | Service Task / User Task |
+| 7 | Évaluer l’éligibilité par règles déterministes/DMN | Service Task + XOR Gateway |
+| 8 | Valider la proposition et le besoin d’un retour physique | User Task + SLA 24 h |
+| 9 | Si requis, recevoir et inspecter le vêtement | User Tasks + contrôle qualité |
+| 10 | Confirmer le mode de remboursement ou traiter une exception | User Task + sous-processus simulé |
+| 11 | Générer la réponse, notifier le client et clôturer | Service Tasks + User Task |
 
 ### Vue simplifiée
 
 ```text
-Demande reçue
+Demande → commande et article
     ↓
-Saisie et recherche de commande
+Complétude ? → correction / complément si nécessaire
     ↓
-Vérification des informations
-    ├── Incomplètes → Demander un complément → Vérifier à nouveau
-    └── Complètes
-          ↓
-Contrôle d’éligibilité
-          ↓
-Analyse IA ou analyse manuelle
-          ↓
-Validation SAV
-    ├── Refus → Notification → Clôture
-    └── Autorisation
-          ↓
-Création RMA et instructions
-          ↓
-Réception du produit
-          ↓
-Inspection
-          ↓
-Validation de la résolution
-          ↓
-Remboursement / Échange / Réparation / Refus motivé
-          ↓
-Exécution et vérification du résultat
-          ↓
-Notification finale
-          ↓
-Clôture
+LLM → RAG + sources → extraction des faits
+    └── IA/RAG indisponible → analyse manuelle
+    ↓
+Règles déterministes / DMN → éligibilité ?
+    ├── Non → refus sourcé → notification → fin
+    └── Oui → validation humaine + SLA 24 h
+              ↓
+       Retour physique requis ?
+       ├── Non ─────────────────────┐
+       └── Oui → réception → inspection → contrôle qualité
+                                      ↓
+                     choix du traitement simulé / exception
+                                      ↓
+                         réponse → notification → clôture
 ```
 
 ### Branches alternatives
@@ -284,13 +262,7 @@ Lorsqu’il se déclenche :
 
 ### Produit non reçu
 
-Un délai configurable peut être ajouté pendant l’attente du produit :
-
-- relance du client ;
-- examen manuel du dossier ;
-- éventuelle clôture motivée.
-
-Pour une démonstration rapide, les durées peuvent être réduites dans une version de test du BPMN.
+Le BPMN courant ne modélise pas de timer distinct après l’envoi des instructions de retour. Le délai de non-réception reste à décider avant d’ajouter cette branche.
 
 ---
 
@@ -300,7 +272,6 @@ Pour une démonstration rapide, les durées peuvent être réduites dans une ver
 
 L’agent entrepôt enregistre :
 
-- l’identifiant RMA ;
 - la date de réception ;
 - la quantité reçue ;
 - un commentaire éventuel.
@@ -312,22 +283,22 @@ L’agent vérifie :
 - la référence du produit ;
 - la quantité ;
 - l’état constaté ;
-- la présence des accessoires ;
+- la présence des étiquettes d’origine ;
 - le défaut déclaré ;
 - les éventuelles différences avec la demande.
 
-### Résolutions possibles
+### Modes de traitement prévus par le BPMN
 
-| Résolution | Traitement simulé |
-|------------|-------------------|
-| Remboursement | Enregistrement du montant et d’une référence fictive |
-| Échange | Création d’une référence de remplacement fictive |
-| Réparation | Création d’un dossier de réparation fictif |
-| Refus motivé | Enregistrement de la justification et du traitement prévu |
+| Mode | Traitement simulé |
+|------|-------------------|
+| Portefeuille SHEIN | Enregistrement d’un remboursement fictif sur portefeuille |
+| Moyen de paiement initial | Enregistrement d’un remboursement fictif sur le moyen initial |
+| Sans retour physique | Enregistrement d’un remboursement fictif sans retour |
+| Exception SAV | Prise en charge et justification manuelles |
 
 La clôture intervient uniquement après l’enregistrement de la résolution et de la notification finale.
 
-Si l’exécution échoue, le dossier reste ouvert et passe en traitement manuel.
+Le BPMN courant n’a pas encore de branche explicite d’erreur après l’échec d’une exécution simulée; ce comportement reste à modéliser.
 
 ---
 
@@ -339,13 +310,16 @@ Sortie structurée attendue :
 
 ```json
 {
-  "category": "defective_product",
-  "summary": "Le client signale un produit qui ne fonctionne plus.",
+  "category": "SIZE_FIT",
+  "summary": "La taille semble trop petite; les étiquettes sont encore attachées.",
   "sentiment": "negative",
   "urgency": "normal",
-  "missing_information": [],
-  "suggested_resolution": "exchange",
-  "requires_manual_review": false
+  "days_since_receipt": 8,
+  "item_worn": false,
+  "item_washed": false,
+  "original_tags_attached": true,
+  "policy_source_ids": ["POLICY_CLOTHING_01", "POLICY_RETURN_WINDOW_01"],
+  "recommendation": "review_eligibility"
 }
 ```
 
@@ -353,7 +327,8 @@ Cette sortie est illustrative et doit correspondre aux schémas réellement impl
 
 ### Utilisations prévues
 
-- Classification du motif.
+- Recherche de politiques publiques pertinentes avec RAG et références de sources.
+- Classification du motif et extraction de faits structurés.
 - Résumé de la demande.
 - Suggestion de traitement.
 - Aide à la rédaction d’un complément.
@@ -364,7 +339,7 @@ Cette sortie est illustrative et doit correspondre aux schémas réellement impl
 
 - Validation des sorties avec Pydantic.
 - Séparation entre `ai_suggestion` et `agent_decision`.
-- Aucune exécution de remboursement sur la seule proposition du LLM.
+- Le LLM ne décide pas l’éligibilité et ne déclenche aucun remboursement.
 - Aucun secret transmis au modèle.
 - Données de démonstration fictives.
 - Fallback manuel en cas d’erreur.
@@ -378,12 +353,18 @@ Les recommandations de l’IA restent consultatives.
 
 | Fichier | Utilisation |
 |---------|-------------|
-| `form-demande-retour.form` | Commande, article, quantité, motif, description |
-| `form-complement-information.form` | Corrections et informations manquantes |
-| `form-autorisation-sav.form` | Éligibilité, analyse IA, autorisation ou refus |
-| `form-reception-produit.form` | Réception et quantité reçue |
-| `form-inspection-produit.form` | État, référence, accessoires, défaut |
-| `form-resolution-sav.form` | Résolution finale et justification |
+| `form-demande-retour.form` | Références, motif, solution souhaitée, description et état déclaré du vêtement |
+| `form-correction-references.form` | Correction de commande/article introuvable |
+| `form-complement-information.form` | Réponse du client aux informations manquantes |
+| `form-analyse-manuelle.form` | Repli humain quand le LLM/RAG n’est pas disponible |
+| `form-validation-sav.form` | Sources RAG, résultat des règles et validation de l’agent |
+| `form-escalade-sav.form` | Relance et suivi du SLA par le responsable SAV |
+| `form-reception-produit.form` | Réception simulée du vêtement retourné |
+| `form-inspection-produit.form` | État, étiquettes, défaut et contrôle qualité |
+| `form-reanalyse-apres-inspection.form` | Réévaluation après constat d’un écart |
+| `form-resolution-sav.form` | Mode de remboursement simulé et justification |
+| `form-resolution-exception.form` | Traitement manuel d’une exception |
+| `form-cloture-dossier.form` | Statut de notification et clôture du dossier |
 
 Une pièce justificative peut être représentée par une référence fictive. Le stockage réel de fichiers n’est pas nécessaire au périmètre minimal.
 
@@ -453,11 +434,17 @@ ReturnFlow-AI/
 │   ├── returnflow_as_is.bpmn
 │   ├── returnflow_to_be.bpmn
 │   ├── form-demande-retour.form
+│   ├── form-correction-references.form
 │   ├── form-complement-information.form
-│   ├── form-autorisation-sav.form
+│   ├── form-analyse-manuelle.form
+│   ├── form-validation-sav.form
+│   ├── form-escalade-sav.form
 │   ├── form-reception-produit.form
 │   ├── form-inspection-produit.form
+│   ├── form-reanalyse-apres-inspection.form
 │   ├── form-resolution-sav.form
+│   ├── form-resolution-exception.form
+│   ├── form-cloture-dossier.form
 │   └── regles-retour.dmn
 ├── backend/
 │   ├── app.py
@@ -485,7 +472,7 @@ ReturnFlow-AI/
 └── README.md
 ```
 
-La base SQLite et le fichier `.env` sont créés localement.
+La configuration PostgreSQL/pgvector et le fichier `.env` sont gérés localement; aucun secret ne doit être versionné.
 
 ---
 
@@ -707,18 +694,18 @@ La conformité doit être évaluée par rapport à un modèle de référence exp
 
 | # | Scénario | Résultat attendu |
 |---|----------|------------------|
-| 1 | Retour accepté | Autorisation, réception, inspection, résolution et clôture |
-| 2 | Retour hors des règles | Refus motivé validé par le SAV |
-| 3 | Produit défectueux | Inspection puis échange ou réparation validé |
-| 4 | Informations manquantes | Boucle de complément |
-| 5 | Commande introuvable | Correction ou traitement manuel |
-| 6 | IA indisponible | Analyse manuelle sans blocage définitif |
-| 7 | JSON IA invalide | Rejet de la sortie et fallback |
-| 8 | SLA dépassé | Relance sans suppression de la tâche |
-| 9 | Produit non reçu | Relance puis traitement manuel |
-| 10 | Produit reçu non conforme | Inspection et décision motivée |
-| 11 | Résolution simulée en échec | Dossier maintenu ouvert |
-| 12 | Appel d’exécution répété | Pas de double remboursement simulé |
+| 1 | Demande éligible | Extraction sourcée, règles déterministes, validation agent |
+| 2 | Demande hors règles | Refus expliqué et notification |
+| 3 | Commande introuvable | Correction des références ou clôture |
+| 4 | Informations manquantes | Complément puis nouvelle vérification; clôture après 48 h |
+| 5 | IA indisponible | Analyse manuelle des faits et des règles |
+| 6 | Contexte RAG insuffisant | Revue manuelle sans décision LLM autonome |
+| 7 | SLA de validation dépassé | Escalade au responsable SAV après 24 h |
+| 8 | Retour physique non requis | Résolution simulée sans étape de réception |
+| 9 | Contrôle qualité conforme | Poursuite vers le mode de traitement choisi |
+| 10 | Contrôle qualité non conforme | Réévaluation humaine après inspection |
+| 11 | Mode de remboursement standard | Portefeuille ou moyen de paiement initial simulé |
+| 12 | Exception de traitement | Prise en charge manuelle et traçable |
 
 Détails prévus : `docs/demo_scenarios.md`.
 
@@ -745,7 +732,7 @@ Détails prévus : `docs/demo_scenarios.md`.
 4. Montrer le TO-BE dans Camunda.
 5. Soumettre une demande.
 6. Montrer les règles d’éligibilité et l’analyse IA.
-7. Valider l’autorisation dans Tasklist.
+7. Examiner les sources et la décision des règles, puis valider la proposition dans Tasklist.
 8. Simuler la réception.
 9. Compléter l’inspection.
 10. Valider et exécuter la résolution simulée.
@@ -808,7 +795,7 @@ Détails prévus : `docs/demo_scenarios.md`.
 | Membre | Responsabilités principales |
 |--------|-----------------------------|
 | Israe Yaaya | BPMN, formulaires, Process Mining, documentation métier |
-| Mohamed | FastAPI, LLM, SQLite, règles, gestion des erreurs |
+| Mohamed | FastAPI, LLM, PostgreSQL/pgvector, règles et gestion des erreurs |
 
 ### Travail commun
 

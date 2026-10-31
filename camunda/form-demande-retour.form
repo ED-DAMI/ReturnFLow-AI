@@ -5,13 +5,18 @@
   "components": [
     {
       "type": "text",
-      "id": "form-demande-retour_text_1",
-      "text": "# Demande de retour\nRenseignez la commande et l'article concernés. *(Données fictives uniquement.)*"
+      "id": "form-demande-retour-title",
+      "text": "# Demande de retour — vêtements"
+    },
+    {
+      "type": "text",
+      "id": "form-demande-retour-help",
+      "text": "Cas académique inspiré des politiques publiques SHEIN Maroc. Utilisez uniquement des données fictives."
     },
     {
       "label": "Numéro de commande",
       "type": "textfield",
-      "id": "form-demande-retour_order_id_2",
+      "id": "form-demande-retour-order_id",
       "key": "order_id",
       "description": "Exemple : CMD-1001",
       "validate": {
@@ -19,9 +24,9 @@
       }
     },
     {
-      "label": "Identifiant de la ligne d'article",
+      "label": "Identifiant de la ligne d’article",
       "type": "textfield",
-      "id": "form-demande-retour_order_item_id_3",
+      "id": "form-demande-retour-order_item_id",
       "key": "order_item_id",
       "description": "Exemple : CMD-1001-L1",
       "validate": {
@@ -31,7 +36,7 @@
     {
       "label": "Quantité à retourner",
       "type": "number",
-      "id": "form-demande-retour_return_quantity_4",
+      "id": "form-demande-retour-return_quantity",
       "key": "return_quantity",
       "validate": {
         "required": true,
@@ -39,84 +44,212 @@
       }
     },
     {
-      "label": "Motif du retour",
+      "label": "Motif principal",
       "type": "select",
-      "id": "form-demande-retour_return_reason_5",
+      "id": "form-demande-retour-return_reason",
       "key": "return_reason",
-      "validate": {
-        "required": true
-      },
       "values": [
         {
-          "label": "Produit défectueux",
-          "value": "defective_product"
+          "label": "Taille / ajustement",
+          "value": "SIZE_FIT"
+        },
+        {
+          "label": "Couleur différente",
+          "value": "COLOR_MISMATCH"
+        },
+        {
+          "label": "Qualité du tissu",
+          "value": "FABRIC_QUALITY"
+        },
+        {
+          "label": "Coupe / forme",
+          "value": "SHAPE_CUT"
+        },
+        {
+          "label": "Article défectueux",
+          "value": "DEFECTIVE"
         },
         {
           "label": "Mauvais article reçu",
-          "value": "wrong_item"
-        },
-        {
-          "label": "Endommagé pendant le transport",
-          "value": "damaged_in_transit"
+          "value": "WRONG_ITEM"
         },
         {
           "label": "Non conforme à la description",
-          "value": "not_as_described"
-        },
-        {
-          "label": "Changement d'avis",
-          "value": "changed_mind"
+          "value": "NOT_AS_DESCRIBED"
         },
         {
           "label": "Autre",
-          "value": "other"
+          "value": "OTHER"
         }
-      ]
-    },
-    {
-      "label": "Résolution souhaitée",
-      "type": "select",
-      "id": "form-demande-retour_requested_resolution_6",
-      "key": "requested_resolution",
+      ],
       "validate": {
         "required": true
-      },
+      }
+    },
+    {
+      "label": "Décrivez le problème et l’état de l’article",
+      "type": "textarea",
+      "id": "form-demande-retour-description",
+      "key": "description",
+      "description": "Indiquez les faits utiles : taille, couleur, tissu, coupe ou défaut.",
+      "validate": {
+        "required": true
+      }
+    },
+    {
+      "label": "Solution souhaitée",
+      "type": "select",
+      "id": "form-demande-retour-requested_resolution",
+      "key": "requested_resolution",
       "values": [
         {
           "label": "Remboursement",
           "value": "refund"
         },
         {
-          "label": "Échange",
+          "label": "Échange / remplacement",
           "value": "exchange"
         },
         {
-          "label": "Réparation",
-          "value": "repair"
+          "label": "Traitement SAV",
+          "value": "service"
+        },
+        {
+          "label": "Sans préférence",
+          "value": "no_preference"
         }
-      ]
-    },
-    {
-      "label": "Description du problème",
-      "type": "textarea",
-      "id": "form-demande-retour_description_7",
-      "key": "description",
+      ],
       "validate": {
         "required": true
       }
     },
     {
-      "label": "Référence de pièce justificative (fictive)",
+      "label": "Article porté (hors essayage)",
+      "type": "select",
+      "id": "form-demande-retour-item_worn",
+      "key": "item_worn",
+      "values": [
+        {
+          "label": "Oui",
+          "value": "yes"
+        },
+        {
+          "label": "Non",
+          "value": "no"
+        },
+        {
+          "label": "Je ne sais pas",
+          "value": "unknown"
+        }
+      ],
+      "validate": {
+        "required": true
+      }
+    },
+    {
+      "label": "Article lavé",
+      "type": "select",
+      "id": "form-demande-retour-item_washed",
+      "key": "item_washed",
+      "values": [
+        {
+          "label": "Oui",
+          "value": "yes"
+        },
+        {
+          "label": "Non",
+          "value": "no"
+        },
+        {
+          "label": "Je ne sais pas",
+          "value": "unknown"
+        }
+      ],
+      "validate": {
+        "required": true
+      }
+    },
+    {
+      "label": "Article modifié",
+      "type": "select",
+      "id": "form-demande-retour-item_modified",
+      "key": "item_modified",
+      "values": [
+        {
+          "label": "Oui",
+          "value": "yes"
+        },
+        {
+          "label": "Non",
+          "value": "no"
+        },
+        {
+          "label": "Je ne sais pas",
+          "value": "unknown"
+        }
+      ],
+      "validate": {
+        "required": true
+      }
+    },
+    {
+      "label": "Étiquettes d’origine encore attachées",
+      "type": "select",
+      "id": "form-demande-retour-original_tags_attached",
+      "key": "original_tags_attached",
+      "values": [
+        {
+          "label": "Oui",
+          "value": "yes"
+        },
+        {
+          "label": "Non",
+          "value": "no"
+        },
+        {
+          "label": "Je ne sais pas",
+          "value": "unknown"
+        }
+      ],
+      "validate": {
+        "required": true
+      }
+    },
+    {
+      "label": "Article endommagé selon le client",
+      "type": "select",
+      "id": "form-demande-retour-item_damaged",
+      "key": "item_damaged",
+      "values": [
+        {
+          "label": "Oui",
+          "value": "yes"
+        },
+        {
+          "label": "Non",
+          "value": "no"
+        },
+        {
+          "label": "Je ne sais pas",
+          "value": "unknown"
+        }
+      ],
+      "validate": {
+        "required": true
+      }
+    },
+    {
+      "label": "Référence de photo fictive",
       "type": "textfield",
-      "id": "form-demande-retour_attachment_reference_8",
-      "key": "attachment_reference",
+      "id": "form-demande-retour-evidence_reference",
+      "key": "evidence_reference",
       "description": "Optionnel. Exemple : PHOTO-001"
     }
   ],
   "executionPlatform": "Camunda Cloud",
-  "executionPlatformVersion": "8.5.0",
+  "executionPlatformVersion": "8.10.0",
   "exporter": {
     "name": "Camunda Modeler",
-    "version": "5.22.0"
+    "version": "5.52.0"
   }
 }

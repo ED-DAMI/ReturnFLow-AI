@@ -5,105 +5,68 @@
   "components": [
     {
       "type": "text",
-      "id": "form-resolution-sav_text_1",
-      "text": "# Validation de la résolution finale (agent SAV)\nDécision prise **après réception et inspection**. Le remboursement, l'échange ou la réparation sont simulés."
+      "id": "form-resolution-sav-title",
+      "text": "# Confirmer le mode de remboursement / traitement"
     },
     {
-      "label": "Identifiant RMA",
-      "type": "textfield",
-      "id": "form-resolution-sav_return_id_2",
-      "key": "return_id",
-      "readonly": true
+      "type": "text",
+      "id": "form-resolution-sav-help",
+      "text": "Les opérations sont simulées. Le choix alimente la passerelle de résolution du BPMN."
     },
     {
-      "label": "Résolution demandée par le client",
+      "label": "Préférence indiquée par le client",
       "type": "textfield",
-      "id": "form-resolution-sav_requested_resolution_3",
+      "id": "form-resolution-sav-requested_resolution",
       "key": "requested_resolution",
       "readonly": true
     },
     {
-      "label": "Résolution suggérée par l'IA",
+      "label": "Résultat de l’inspection",
       "type": "textfield",
-      "id": "form-resolution-sav_ai_suggested_resolution_4",
-      "key": "ai_suggested_resolution",
-      "readonly": true,
-      "conditional": {
-        "hide": "=ai_status = \"fallback\""
-      }
-    },
-    {
-      "label": "Résultat de l'inspection",
-      "type": "textfield",
-      "id": "form-resolution-sav_inspection_result_5",
+      "id": "form-resolution-sav-inspection_result",
       "key": "inspection_result",
       "readonly": true
     },
     {
-      "label": "État constaté",
-      "type": "textfield",
-      "id": "form-resolution-sav_inspection_condition_6",
-      "key": "inspection_condition",
-      "readonly": true
-    },
-    {
-      "label": "Différences constatées",
-      "type": "textarea",
-      "id": "form-resolution-sav_inspection_differences_7",
-      "key": "inspection_differences",
-      "readonly": true
-    },
-    {
-      "type": "text",
-      "id": "form-resolution-sav_text_8",
-      "text": "## Décision"
-    },
-    {
-      "label": "Résolution finale",
-      "type": "radio",
-      "id": "form-resolution-sav_final_resolution_9",
-      "key": "final_resolution",
-      "validate": {
-        "required": true
-      },
+      "label": "Mode de traitement",
+      "type": "select",
+      "id": "form-resolution-sav-refundMethod",
+      "key": "refundMethod",
       "values": [
         {
-          "label": "Remboursement",
-          "value": "refund"
+          "label": "Remboursement portefeuille SHEIN",
+          "value": "shein_wallet"
         },
         {
-          "label": "Échange",
-          "value": "exchange"
+          "label": "Remboursement moyen initial",
+          "value": "original_payment"
         },
         {
-          "label": "Réparation",
-          "value": "repair"
+          "label": "Remboursement sans retour",
+          "value": "returnless"
         },
         {
-          "label": "Refus motivé",
-          "value": "motivated_refusal"
+          "label": "Exception / revue manuelle",
+          "value": "manual"
         }
-      ]
+      ],
+      "validate": {
+        "required": true
+      }
     },
     {
-      "label": "Montant du remboursement (fictif)",
+      "label": "Montant fictif du remboursement",
       "type": "number",
-      "id": "form-resolution-sav_refund_amount_10",
+      "id": "form-resolution-sav-refund_amount",
       "key": "refund_amount",
       "validate": {
-        "required": true,
         "min": 0
-      },
-      "conditional": {
-        "hide": "=final_resolution != \"refund\""
-      },
-      "decimalDigits": 2,
-      "increment": "0.01"
+      }
     },
     {
       "label": "Justification",
       "type": "textarea",
-      "id": "form-resolution-sav_resolution_justification_11",
+      "id": "form-resolution-sav-resolution_justification",
       "key": "resolution_justification",
       "validate": {
         "required": true
@@ -111,9 +74,9 @@
     }
   ],
   "executionPlatform": "Camunda Cloud",
-  "executionPlatformVersion": "8.5.0",
+  "executionPlatformVersion": "8.10.0",
   "exporter": {
     "name": "Camunda Modeler",
-    "version": "5.22.0"
+    "version": "5.52.0"
   }
 }

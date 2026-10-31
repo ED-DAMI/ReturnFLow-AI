@@ -1,0 +1,137 @@
+{
+  "schemaVersion": 11,
+  "type": "default",
+  "id": "form-validation-sav",
+  "components": [
+    {
+      "type": "text",
+      "id": "form-validation-sav-title",
+      "text": "# Validation par l’agent SAV"
+    },
+    {
+      "type": "text",
+      "id": "form-validation-sav-help",
+      "text": "L’IA et le RAG assistent l’analyse. Les règles déterministes évaluent l’éligibilité; l’agent valide la suite."
+    },
+    {
+      "label": "Motif déclaré",
+      "type": "textfield",
+      "id": "form-validation-sav-return_reason",
+      "key": "return_reason",
+      "readonly": true
+    },
+    {
+      "label": "Description du client",
+      "type": "textarea",
+      "id": "form-validation-sav-description",
+      "key": "description",
+      "readonly": true
+    },
+    {
+      "label": "Catégorie détectée",
+      "type": "textfield",
+      "id": "form-validation-sav-category",
+      "key": "category",
+      "readonly": true
+    },
+    {
+      "label": "Résumé de l’analyse",
+      "type": "textarea",
+      "id": "form-validation-sav-ai_summary",
+      "key": "ai_summary",
+      "readonly": true
+    },
+    {
+      "label": "Confiance de l’analyse",
+      "type": "number",
+      "id": "form-validation-sav-confidence",
+      "key": "confidence",
+      "readonly": true
+    },
+    {
+      "label": "Extraits de politique récupérés par le RAG",
+      "type": "textarea",
+      "id": "form-validation-sav-policyChunks",
+      "key": "policyChunks",
+      "readonly": true
+    },
+    {
+      "label": "Sources de politique",
+      "type": "textfield",
+      "id": "form-validation-sav-sourceIds",
+      "key": "sourceIds",
+      "readonly": true
+    },
+    {
+      "label": "Éligible selon les règles",
+      "type": "checkbox",
+      "id": "form-validation-sav-eligibility",
+      "key": "eligibility",
+      "readonly": true
+    },
+    {
+      "label": "Justification des règles",
+      "type": "textarea",
+      "id": "form-validation-sav-eligibility_reason",
+      "key": "eligibility_reason",
+      "readonly": true
+    },
+    {
+      "label": "Recommandation de l’assistant",
+      "type": "textarea",
+      "id": "form-validation-sav-recommendation",
+      "key": "recommendation",
+      "readonly": true
+    },
+    {
+      "label": "Le produit doit être retourné physiquement",
+      "type": "checkbox",
+      "id": "form-validation-sav-returnRequired",
+      "key": "returnRequired",
+      "description": "Décocher pour un remboursement sans retour.",
+      "defaultValue": true
+    },
+    {
+      "label": "Mode de traitement proposé",
+      "type": "select",
+      "id": "form-validation-sav-refundMethod",
+      "key": "refundMethod",
+      "values": [
+        {
+          "label": "Portefeuille SHEIN (simulation)",
+          "value": "shein_wallet"
+        },
+        {
+          "label": "Moyen de paiement initial (simulation)",
+          "value": "original_payment"
+        },
+        {
+          "label": "Remboursement sans retour (simulation)",
+          "value": "returnless"
+        },
+        {
+          "label": "Examen manuel",
+          "value": "manual"
+        }
+      ],
+      "validate": {
+        "required": true
+      }
+    },
+    {
+      "label": "Note de validation SAV",
+      "type": "textarea",
+      "id": "form-validation-sav-agent_note",
+      "key": "agent_note",
+      "validate": {
+        "required": true
+      }
+    }
+  ],
+  "executionPlatform": "Camunda Cloud",
+  "executionPlatformVersion": "8.10.0",
+  "exporter": {
+    "name": "Camunda Modeler",
+    "version": "5.52.0"
+  }
+}

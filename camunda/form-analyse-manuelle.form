@@ -1,0 +1,222 @@
+{
+  "schemaVersion": 11,
+  "type": "default",
+  "id": "form-analyse-manuelle",
+  "components": [
+    {
+      "type": "text",
+      "id": "form-analyse-manuelle-title",
+      "text": "# Analyse manuelle — faits et règles"
+    },
+    {
+      "type": "text",
+      "id": "form-analyse-manuelle-help",
+      "text": "À utiliser si le LLM est indisponible ou si le contexte RAG est insuffisant. L’éligibilité reste déterminée par les règles."
+    },
+    {
+      "label": "Catégorie du motif",
+      "type": "select",
+      "id": "form-analyse-manuelle-category",
+      "key": "category",
+      "values": [
+        {
+          "label": "Taille / ajustement",
+          "value": "SIZE_FIT"
+        },
+        {
+          "label": "Couleur différente",
+          "value": "COLOR_MISMATCH"
+        },
+        {
+          "label": "Qualité du tissu",
+          "value": "FABRIC_QUALITY"
+        },
+        {
+          "label": "Coupe / forme",
+          "value": "SHAPE_CUT"
+        },
+        {
+          "label": "Article défectueux",
+          "value": "DEFECTIVE"
+        },
+        {
+          "label": "Mauvais article reçu",
+          "value": "WRONG_ITEM"
+        },
+        {
+          "label": "Non conforme à la description",
+          "value": "NOT_AS_DESCRIBED"
+        },
+        {
+          "label": "Autre",
+          "value": "OTHER"
+        }
+      ],
+      "validate": {
+        "required": true
+      }
+    },
+    {
+      "label": "Jours depuis la réception",
+      "type": "number",
+      "id": "form-analyse-manuelle-days_since_receipt",
+      "key": "days_since_receipt",
+      "description": "Calculé depuis la date de livraison de la commande.",
+      "validate": {
+        "required": true,
+        "min": 0
+      }
+    },
+    {
+      "label": "Article porté",
+      "type": "select",
+      "id": "form-analyse-manuelle-item_worn",
+      "key": "item_worn",
+      "values": [
+        {
+          "label": "Oui",
+          "value": "yes"
+        },
+        {
+          "label": "Non",
+          "value": "no"
+        },
+        {
+          "label": "Je ne sais pas",
+          "value": "unknown"
+        }
+      ]
+    },
+    {
+      "label": "Article lavé",
+      "type": "select",
+      "id": "form-analyse-manuelle-item_washed",
+      "key": "item_washed",
+      "values": [
+        {
+          "label": "Oui",
+          "value": "yes"
+        },
+        {
+          "label": "Non",
+          "value": "no"
+        },
+        {
+          "label": "Je ne sais pas",
+          "value": "unknown"
+        }
+      ]
+    },
+    {
+      "label": "Article modifié",
+      "type": "select",
+      "id": "form-analyse-manuelle-item_modified",
+      "key": "item_modified",
+      "values": [
+        {
+          "label": "Oui",
+          "value": "yes"
+        },
+        {
+          "label": "Non",
+          "value": "no"
+        },
+        {
+          "label": "Je ne sais pas",
+          "value": "unknown"
+        }
+      ]
+    },
+    {
+      "label": "Étiquettes d’origine attachées",
+      "type": "select",
+      "id": "form-analyse-manuelle-original_tags_attached",
+      "key": "original_tags_attached",
+      "values": [
+        {
+          "label": "Oui",
+          "value": "yes"
+        },
+        {
+          "label": "Non",
+          "value": "no"
+        },
+        {
+          "label": "Je ne sais pas",
+          "value": "unknown"
+        }
+      ]
+    },
+    {
+      "label": "Article endommagé",
+      "type": "select",
+      "id": "form-analyse-manuelle-item_damaged",
+      "key": "item_damaged",
+      "values": [
+        {
+          "label": "Oui",
+          "value": "yes"
+        },
+        {
+          "label": "Non",
+          "value": "no"
+        },
+        {
+          "label": "Je ne sais pas",
+          "value": "unknown"
+        }
+      ]
+    },
+    {
+      "label": "Défaut signalé confirmé",
+      "type": "select",
+      "id": "form-analyse-manuelle-defect_confirmed",
+      "key": "defect_confirmed",
+      "values": [
+        {
+          "label": "Oui",
+          "value": "yes"
+        },
+        {
+          "label": "Non",
+          "value": "no"
+        },
+        {
+          "label": "Je ne sais pas",
+          "value": "unknown"
+        }
+      ]
+    },
+    {
+      "label": "Règles / éléments de politique consultés",
+      "type": "textarea",
+      "id": "form-analyse-manuelle-policy_evidence",
+      "key": "policy_evidence",
+      "validate": {
+        "required": true
+      }
+    },
+    {
+      "label": "Références des sources consultées",
+      "type": "textfield",
+      "id": "form-analyse-manuelle-policy_source_ids",
+      "key": "policy_source_ids",
+      "description": "Séparez les identifiants par des virgules."
+    },
+    {
+      "label": "Analyse et incertitudes",
+      "type": "textarea",
+      "id": "form-analyse-manuelle-manual_analysis_note",
+      "key": "manual_analysis_note",
+      "validate": {
+        "required": true
+      }
+    }
+  ],
+  "executionPlatform": "Camunda Cloud",
+  "executionPlatformVersion": "8.10.0",
+  "exporter": {
+    "name": "Camunda Modeler",
+    "version": "5.52.0"
+  }
+}
