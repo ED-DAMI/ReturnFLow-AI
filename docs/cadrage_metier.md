@@ -1,81 +1,80 @@
-# ReturnFlow AI - cadrage métier
+# ReturnFlow AI — cadrage métier
 
-**Version :** 0.1 - document de travail
-**Périmètre actuel :** J1, cadrage métier et processus AS-IS
+**Version :** 0.2 — document de travail J1  
+**Base de travail :** README et modèles BPMN partagés sur `main` au 31 octobre 2026
 
-Les règles ci-dessous sont des hypothèses de simulation. Elles doivent être confirmées par l'équipe avant d'être considérées comme la politique métier du projet.
+Ce document résume le périmètre métier retenu pour le démarrage. Les règles qui ne figurent pas dans les documents partagés sont signalées comme hypothèses à valider. Le README décrit un périmètre cible prévu : les fonctions restent à implémenter et à valider.
 
-## 1. Problématique
+## 1. Problématique et objectif
 
-Le traitement d'une demande de retour peut varier selon l'agent et prendre du temps. L'agent doit retrouver la commande, comprendre le motif, vérifier les conditions applicables, choisir une solution et informer le client.
+Le traitement d'un retour nécessite de retrouver la commande, vérifier les informations et les règles applicables, communiquer avec le client, puis décider et exécuter une résolution. Le projet part du processus manuel AS-IS et prévoit un processus cible TO-BE orchestré par Camunda, complété par l'analyse Process Mining et une assistance IA.
 
-Le projet modélise d'abord le traitement manuel actuel (AS-IS), puis pourra comparer ce fonctionnement à un processus cible (TO-BE) assisté par workflow, analyse de processus et IA.
+Le principe métier retenu est que les règles déterminent l'éligibilité, l'IA peut analyser et recommander, et l'agent SAV valide les décisions. L'autorisation d'expédier un retour est distincte de la décision finale prise après réception et inspection du produit.
 
-## 2. Périmètre J1
+## 2. Périmètre du processus AS-IS
 
-Le processus commence à la réception d'une demande de retour. Il couvre l'enregistrement du dossier, la vérification des informations et de la commande, l'examen manuel de l'éligibilité, le choix et la validation d'une solution, puis l'information du client.
+Le BPMN AS-IS partagé couvre le traitement manuel suivant :
 
-Le BPMN AS-IS décrit les tâches manuelles. Il n'intègre ni classification IA, ni recommandation automatique, ni intégration technique à Camunda ou au backend.
+1. Recevoir et lire la demande.
+2. Rechercher la commande.
+3. Vérifier les informations et les règles.
+4. Demander un complément au client et reprendre la vérification si nécessaire.
+5. Autoriser ou refuser le retour; enregistrer et notifier un refus.
+6. Envoyer les instructions, recevoir le produit et l'inspecter.
+7. Décider puis exécuter la résolution finale.
+8. Notifier le client et clôturer le dossier.
+
+L'AS-IS ne comprend pas de classification ou recommandation IA ni d'automatisation Camunda. Le README décrit le TO-BE prévu, dont le contrôle d'éligibilité, l'assistance IA avec repli manuel, le RMA, l'escalade SAV et l'exécution simulée d'un remboursement, échange ou réparation.
 
 ## 3. Acteurs
 
-| Acteur | Rôle dans le processus |
+| Acteur | Responsabilité décrite |
 |---|---|
-| Client | Soumet la demande, fournit les informations manquantes et reçoit la réponse. |
-| Agent SAV | Enregistre et vérifie le dossier, applique la politique, choisit et valide la solution. |
-| Système de commandes | Source consultée par l'agent pour retrouver la commande. Dans l'AS-IS, la consultation est manuelle. |
-| Camunda, backend et service IA | Composants envisagés pour le TO-BE; ils ne sont pas représentés comme acteurs exécutants dans l'AS-IS. |
+| Client | Soumettre la demande, fournir les compléments et retourner le produit. |
+| Agent SAV | Autoriser ou refuser le retour et valider la résolution finale. |
+| Agent entrepôt | Confirmer la réception et inspecter le produit. |
+| Responsable SAV | Recevoir les escalades, notamment en cas de dépassement du SLA prévu. |
+| Système | Appliquer les règles, enregistrer les opérations et notifier dans le TO-BE. |
+| Assistant IA | Analyser, résumer, proposer et rédiger dans le TO-BE; l'agent garde la décision métier. |
 
-## 4. Données du dossier
+## 4. Données métier de référence
 
-| Donnée | Usage |
+Les noms ci-dessous reprennent le modèle de données prévu dans le README. Ils ne signifient pas que la base ou les API sont déjà implémentées.
+
+| Entité | Champs principaux |
 |---|---|
-| `returnId` | Identifiant du dossier et futur identifiant de cas Process Mining. |
-| `orderId` | Recherche de la commande. |
-| `clientName` | Identification dans les échanges; utiliser une valeur fictive dans les exemples. |
-| `productName` | Produit concerné par le retour. |
-| `purchaseDate` | Vérification de la période de retour proposée. |
-| `reason` | Motif communiqué par le client. |
-| `productCondition` | État déclaré du produit. |
-| `desiredSolution` | Solution souhaitée par le client. |
-| `warrantyActive` | Indicateur à confirmer pour les cas de produit défectueux. |
-| `eligibility` | Résultat de la vérification manuelle. |
-| `agentDecision` | Décision validée par l'agent. |
-| `finalResponse` | Réponse communiquée au client. |
+| Commande et article | `order_id`, `order_item_id`, `product_id`, `product_name`, `ordered_quantity`, `purchase_date`, `delivery_date`, `unit_price` |
+| Dossier de retour | `return_id`, `order_id`, `order_item_id`, `return_quantity`, `return_reason`, `requested_resolution`, `eligibility_status`, `authorization_status`, `ai_status`, `ai_suggestion`, `agent_decision`, `received_at`, `inspection_result`, `final_resolution`, `resolution_status`, `closed_at` |
 
-Pour un futur journal Process Mining, prévoir au minimum un identifiant de cas, l'activité, les dates/horaires de début et de fin, la ressource (ou un identifiant pseudonymisé) et le résultat. N'utiliser que des données synthétiques ou anonymisées.
+Les exemples et journaux de démonstration doivent utiliser des données synthétiques ou anonymisées. Pour Process Mining, chaque événement doit pouvoir être rattaché à un `return_id` et comporter au minimum une activité, un horodatage et un résultat.
 
-Les champs `category`, `sentiment`, `urgency` et `aiRecommendation` sont des pistes TO-BE et ne sont pas requis pour l'AS-IS.
+## 5. Règles et décisions à valider
 
-## 5. Règles métier proposées
-
-| ID | Règle de travail | Effet dans l'AS-IS |
+| Sujet | Ce qui est établi dans le README partagé | À confirmer |
 |---|---|---|
-| R1 | Le dossier doit contenir au minimum `orderId`, `reason`, `productCondition` et `desiredSolution`. | Si une donnée manque, l'agent demande un complément et reprend l'examen après réception. |
-| R2 | La commande doit exister dans le système de commandes. | Sinon, l'agent informe le client et clôt le dossier. |
-| R3 | Proposition à confirmer : un retour classique est éligible si la demande intervient au plus 30 jours calendaires après l'achat. | L'agent vérifie manuellement la date. |
-| R4 | Proposition à confirmer : un produit défectueux avec garantie active peut être orienté vers une réparation ou un échange, même hors du délai classique. | L'agent vérifie le défaut et la garantie; il choisit ensuite la solution autorisée. |
-| R5 | L'agent SAV prend et valide la décision finale. | La décision est humaine dans l'AS-IS; dans le TO-BE, l'IA pourra seulement recommander ou rédiger. |
-| R6 | Les résultats possibles sont remboursement, échange, réparation ou refus. | L'agent informe le client de la décision et de la suite à donner. |
+| Complétude | Une demande incomplète peut suivre une boucle de demande de complément. | Champs obligatoires et durée maximale d'attente. |
+| Recherche de commande | La commande et l'article doivent être recherchés; le TO-BE prévoit un cas introuvable. | Correction/réessai ou clôture, et représentation de cette décision dans l'AS-IS. |
+| Éligibilité | Un contrôle d'éligibilité est prévu avant l'autorisation SAV. | Critères et délais commerciaux précis. |
+| Autorisation | L'agent SAV autorise ou refuse le retour avant expédition. | Motifs et règles exactes d'autorisation/refus. |
+| Résolution finale | Après réception et inspection, l'agent valide la résolution; les options simulées sont remboursement, échange ou réparation. | Conditions par motif, produit et résultat d'inspection. |
+| IA et décision | L'IA assiste; l'agent valide les décisions métier. Un fallback manuel est prévu si l'IA est indisponible. | Contenu des recommandations et contrôles de sortie. |
+| Délais | Un SLA de 24 heures avec relance non interruptive et information du responsable SAV est prévu pour la validation. | Délai d'attente du produit et durée utilisée pour les démonstrations. |
 
-Les durées, les justificatifs requis et les conditions exactes de remboursement, d'échange ou de réparation restent à confirmer. Les passerelles du BPMN portent donc des questions métier génériques plutôt que des expressions exécutables.
+La règle « retour classique dans les 30 jours » et l'exception liée à une garantie active figuraient dans une première ébauche locale, mais ne sont pas confirmées par le README ou les BPMN partagés. Elles restent donc des propositions à valider et ne doivent pas être codées comme règles acquises.
 
-## 6. Scénarios à couvrir
+## 6. Scénarios de démonstration
 
-1. **Retour classique accepté :** commande trouvée, dossier complet, critères satisfaits, solution validée par l'agent.
-2. **Produit défectueux sous garantie :** l'agent vérifie le défaut et la garantie, puis examine une réparation ou un échange.
-3. **Retour hors délai classique :** l'agent refuse selon la règle de délai proposée, sauf exception confirmée.
-4. **Commande introuvable :** le client est informé et le dossier est clôturé.
-5. **Informations manquantes :** l'agent sollicite le client, reçoit son complément et poursuit l'analyse.
-6. **Traitement agent en retard :** le dossier reste en attente; le délai est à mesurer dans les données. Le BPMN AS-IS ne déclenche pas d'escalade automatique.
+Le README partagé recense 12 scénarios TO-BE : retour accepté, retour hors règles, produit défectueux, informations manquantes, commande introuvable, IA indisponible, JSON IA invalide, SLA dépassé, produit non reçu, produit reçu non conforme, échec de résolution simulée et appel d'exécution répété sans double remboursement.
 
-**Cas TO-BE distinct :** indisponibilité du service IA. Le processus cible devra prévoir un retour au traitement manuel; ce cas n'apparaît pas dans le BPMN AS-IS.
+Pour la modélisation AS-IS, les cas principaux à vérifier sont la demande complète, le complément d'information, le refus, la réception et inspection, puis la décision et la clôture. Les cas IA, SLA automatisé, idempotence et échec de service relèvent du TO-BE.
 
-## 7. Points à valider avec l'équipe
+## 7. Écart de modélisation à suivre
 
-- Le délai classique est-il bien de 30 jours, et se calcule-t-il depuis l'achat, la livraison ou la réception du produit ?
-- Quelles preuves déterminent qu'un produit est défectueux et que sa garantie est active ?
-- Un dossier incomplet reste-t-il ouvert sans limite, ou expire-t-il après une durée définie ?
-- Quelles solutions sont autorisées pour chaque catégorie de produit et de motif ?
-- À quel événement le processus se termine-t-il : décision, expédition du produit retourné ou réception du remboursement/de l'échange ?
-- Quel délai agent/SLA veut-on mesurer et quelle règle d'escalade sera définie pour le TO-BE ?
+Le README prévoit le cas « commande ou article introuvable » dans le TO-BE. Le BPMN AS-IS partagé enchaîne la recherche de commande avec la vérification, sans passerelle dédiée indiquant si la commande existe. Confirmer avec l'équipe si ce cas doit être ajouté au diagramme AS-IS ou rester documenté uniquement comme exception cible.
+
+## 8. Références de travail
+
+- `README.md` — périmètre, processus et scénarios de démonstration.
+- `camunda/returnflow_as_is.bpmn` — processus manuel AS-IS.
+- `camunda/returnflow_to_be.bpmn` — processus cible TO-BE.
+- `camunda/*.form` — formulaires prévus pour les étapes du processus cible.

@@ -3,6 +3,14 @@ venv/
 __pycache__/
 *.py[cod]
 .pytest_cache/
+issues.bash
+
+# Local SQLite databases
+*.db
+*.db-shm
+*.db-wal
+*.sqlite
+*.sqlite3
 
 # Local secrets and configuration
 .env

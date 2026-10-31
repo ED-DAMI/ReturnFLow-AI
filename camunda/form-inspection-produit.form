@@ -1,0 +1,206 @@
+{
+  "schemaVersion": 11,
+  "type": "default",
+  "id": "form-inspection-produit",
+  "components": [
+    {
+      "type": "text",
+      "id": "form-inspection-produit_text_1",
+      "text": "# Inspection du produit (agent entrepôt)"
+    },
+    {
+      "label": "Identifiant RMA",
+      "type": "textfield",
+      "id": "form-inspection-produit_return_id_2",
+      "key": "return_id",
+      "readonly": true
+    },
+    {
+      "label": "Produit attendu",
+      "type": "textfield",
+      "id": "form-inspection-produit_product_name_3",
+      "key": "product_name",
+      "readonly": true
+    },
+    {
+      "label": "Quantité attendue",
+      "type": "number",
+      "id": "form-inspection-produit_return_quantity_4",
+      "key": "return_quantity",
+      "readonly": true
+    },
+    {
+      "label": "Quantité reçue",
+      "type": "number",
+      "id": "form-inspection-produit_received_quantity_5",
+      "key": "received_quantity",
+      "readonly": true
+    },
+    {
+      "label": "Motif déclaré",
+      "type": "textfield",
+      "id": "form-inspection-produit_return_reason_6",
+      "key": "return_reason",
+      "readonly": true
+    },
+    {
+      "label": "Défaut déclaré par le client",
+      "type": "textarea",
+      "id": "form-inspection-produit_description_7",
+      "key": "description",
+      "readonly": true
+    },
+    {
+      "type": "text",
+      "id": "form-inspection-produit_text_8",
+      "text": "## Constat"
+    },
+    {
+      "label": "La référence du produit correspond-elle ?",
+      "type": "radio",
+      "id": "form-inspection-produit_inspection_reference_match_9",
+      "key": "inspection_reference_match",
+      "validate": {
+        "required": true
+      },
+      "values": [
+        {
+          "label": "Oui",
+          "value": "yes"
+        },
+        {
+          "label": "Non",
+          "value": "no"
+        }
+      ]
+    },
+    {
+      "label": "La quantité correspond-elle à la demande ?",
+      "type": "radio",
+      "id": "form-inspection-produit_inspection_quantity_match_10",
+      "key": "inspection_quantity_match",
+      "validate": {
+        "required": true
+      },
+      "values": [
+        {
+          "label": "Oui",
+          "value": "yes"
+        },
+        {
+          "label": "Non",
+          "value": "no"
+        }
+      ]
+    },
+    {
+      "label": "État constaté",
+      "type": "select",
+      "id": "form-inspection-produit_inspection_condition_11",
+      "key": "inspection_condition",
+      "validate": {
+        "required": true
+      },
+      "values": [
+        {
+          "label": "Neuf / jamais utilisé",
+          "value": "new"
+        },
+        {
+          "label": "Bon état",
+          "value": "good"
+        },
+        {
+          "label": "Usé",
+          "value": "used"
+        },
+        {
+          "label": "Endommagé",
+          "value": "damaged"
+        },
+        {
+          "label": "Défectueux",
+          "value": "defective"
+        }
+      ]
+    },
+    {
+      "label": "Accessoires",
+      "type": "select",
+      "id": "form-inspection-produit_inspection_accessories_12",
+      "key": "inspection_accessories",
+      "validate": {
+        "required": true
+      },
+      "values": [
+        {
+          "label": "Complets",
+          "value": "complete"
+        },
+        {
+          "label": "Incomplets",
+          "value": "incomplete"
+        },
+        {
+          "label": "Sans objet",
+          "value": "not_applicable"
+        }
+      ]
+    },
+    {
+      "label": "Défaut déclaré confirmé ?",
+      "type": "select",
+      "id": "form-inspection-produit_inspection_defect_confirmed_13",
+      "key": "inspection_defect_confirmed",
+      "validate": {
+        "required": true
+      },
+      "values": [
+        {
+          "label": "Oui",
+          "value": "yes"
+        },
+        {
+          "label": "Non",
+          "value": "no"
+        },
+        {
+          "label": "Sans objet",
+          "value": "not_applicable"
+        }
+      ]
+    },
+    {
+      "label": "Différences avec la demande",
+      "type": "textarea",
+      "id": "form-inspection-produit_inspection_differences_14",
+      "key": "inspection_differences",
+      "description": "Laisser vide si aucune"
+    },
+    {
+      "label": "Résultat de l'inspection",
+      "type": "radio",
+      "id": "form-inspection-produit_inspection_result_15",
+      "key": "inspection_result",
+      "validate": {
+        "required": true
+      },
+      "values": [
+        {
+          "label": "Conforme à la demande",
+          "value": "conforming"
+        },
+        {
+          "label": "Non conforme",
+          "value": "non_conforming"
+        }
+      ]
+    }
+  ],
+  "executionPlatform": "Camunda Cloud",
+  "executionPlatformVersion": "8.5.0",
+  "exporter": {
+    "name": "Camunda Modeler",
+    "version": "5.22.0"
+  }
+}

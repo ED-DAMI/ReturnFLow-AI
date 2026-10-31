@@ -1,0 +1,145 @@
+{
+  "schemaVersion": 11,
+  "type": "default",
+  "id": "form-complement-information",
+  "components": [
+    {
+      "type": "text",
+      "id": "form-complement-information_text_1",
+      "text": "# Complément d'information\nLa demande est incomplète ou la commande est introuvable. Corrigez ou complétez les champs ci-dessous."
+    },
+    {
+      "label": "Informations manquantes / erreurs détectées",
+      "type": "textarea",
+      "id": "form-complement-information_missing_information_text_2",
+      "key": "missing_information_text",
+      "readonly": true
+    },
+    {
+      "label": "Message envoyé au client",
+      "type": "textarea",
+      "id": "form-complement-information_customer_message_3",
+      "key": "customer_message",
+      "readonly": true
+    },
+    {
+      "type": "text",
+      "id": "form-complement-information_text_4",
+      "text": "## Corrections"
+    },
+    {
+      "label": "Numéro de commande",
+      "type": "textfield",
+      "id": "form-complement-information_order_id_5",
+      "key": "order_id",
+      "validate": {
+        "required": true
+      }
+    },
+    {
+      "label": "Identifiant de la ligne d'article",
+      "type": "textfield",
+      "id": "form-complement-information_order_item_id_6",
+      "key": "order_item_id",
+      "validate": {
+        "required": true
+      }
+    },
+    {
+      "label": "Quantité à retourner",
+      "type": "number",
+      "id": "form-complement-information_return_quantity_7",
+      "key": "return_quantity",
+      "validate": {
+        "required": true,
+        "min": 1
+      }
+    },
+    {
+      "label": "Motif du retour",
+      "type": "select",
+      "id": "form-complement-information_return_reason_8",
+      "key": "return_reason",
+      "validate": {
+        "required": true
+      },
+      "values": [
+        {
+          "label": "Produit défectueux",
+          "value": "defective_product"
+        },
+        {
+          "label": "Mauvais article reçu",
+          "value": "wrong_item"
+        },
+        {
+          "label": "Endommagé pendant le transport",
+          "value": "damaged_in_transit"
+        },
+        {
+          "label": "Non conforme à la description",
+          "value": "not_as_described"
+        },
+        {
+          "label": "Changement d'avis",
+          "value": "changed_mind"
+        },
+        {
+          "label": "Autre",
+          "value": "other"
+        }
+      ]
+    },
+    {
+      "label": "Résolution souhaitée",
+      "type": "select",
+      "id": "form-complement-information_requested_resolution_9",
+      "key": "requested_resolution",
+      "validate": {
+        "required": true
+      },
+      "values": [
+        {
+          "label": "Remboursement",
+          "value": "refund"
+        },
+        {
+          "label": "Échange",
+          "value": "exchange"
+        },
+        {
+          "label": "Réparation",
+          "value": "repair"
+        }
+      ]
+    },
+    {
+      "label": "Description du problème",
+      "type": "textarea",
+      "id": "form-complement-information_description_10",
+      "key": "description",
+      "validate": {
+        "required": true
+      }
+    },
+    {
+      "label": "Référence de pièce justificative (fictive)",
+      "type": "textfield",
+      "id": "form-complement-information_attachment_reference_11",
+      "key": "attachment_reference"
+    },
+    {
+      "label": "Informations complémentaires",
+      "type": "textarea",
+      "id": "form-complement-information_additional_information_12",
+      "key": "additional_information",
+      "description": "Réponse du client à la demande de complément"
+    }
+  ],
+  "executionPlatform": "Camunda Cloud",
+  "executionPlatformVersion": "8.5.0",
+  "exporter": {
+    "name": "Camunda Modeler",
+    "version": "5.22.0"
+  }
+}
