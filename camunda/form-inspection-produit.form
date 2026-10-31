@@ -5,114 +5,69 @@
   "components": [
     {
       "type": "text",
-      "id": "form-inspection-produit_text_1",
-      "text": "# Inspection du produit (agent entrepôt)"
+      "id": "form-inspection-produit-title",
+      "text": "# Inspection du vêtement"
     },
     {
-      "label": "Identifiant RMA",
+      "label": "Article attendu",
       "type": "textfield",
-      "id": "form-inspection-produit_return_id_2",
-      "key": "return_id",
-      "readonly": true
-    },
-    {
-      "label": "Produit attendu",
-      "type": "textfield",
-      "id": "form-inspection-produit_product_name_3",
+      "id": "form-inspection-produit-product_name",
       "key": "product_name",
-      "readonly": true
-    },
-    {
-      "label": "Quantité attendue",
-      "type": "number",
-      "id": "form-inspection-produit_return_quantity_4",
-      "key": "return_quantity",
-      "readonly": true
-    },
-    {
-      "label": "Quantité reçue",
-      "type": "number",
-      "id": "form-inspection-produit_received_quantity_5",
-      "key": "received_quantity",
       "readonly": true
     },
     {
       "label": "Motif déclaré",
       "type": "textfield",
-      "id": "form-inspection-produit_return_reason_6",
+      "id": "form-inspection-produit-return_reason",
       "key": "return_reason",
       "readonly": true
     },
     {
-      "label": "Défaut déclaré par le client",
+      "label": "Description du client",
       "type": "textarea",
-      "id": "form-inspection-produit_description_7",
+      "id": "form-inspection-produit-description",
       "key": "description",
       "readonly": true
     },
     {
-      "type": "text",
-      "id": "form-inspection-produit_text_8",
-      "text": "## Constat"
-    },
-    {
-      "label": "La référence du produit correspond-elle ?",
-      "type": "radio",
-      "id": "form-inspection-produit_inspection_reference_match_9",
+      "label": "La référence correspond à l’article attendu",
+      "type": "checkbox",
+      "id": "form-inspection-produit-inspection_reference_match",
       "key": "inspection_reference_match",
-      "validate": {
-        "required": true
-      },
-      "values": [
-        {
-          "label": "Oui",
-          "value": "yes"
-        },
-        {
-          "label": "Non",
-          "value": "no"
-        }
-      ]
+      "defaultValue": false
     },
     {
-      "label": "La quantité correspond-elle à la demande ?",
-      "type": "radio",
-      "id": "form-inspection-produit_inspection_quantity_match_10",
+      "label": "La quantité reçue correspond",
+      "type": "checkbox",
+      "id": "form-inspection-produit-inspection_quantity_match",
       "key": "inspection_quantity_match",
-      "validate": {
-        "required": true
-      },
-      "values": [
-        {
-          "label": "Oui",
-          "value": "yes"
-        },
-        {
-          "label": "Non",
-          "value": "no"
-        }
-      ]
+      "defaultValue": false
     },
     {
       "label": "État constaté",
       "type": "select",
-      "id": "form-inspection-produit_inspection_condition_11",
+      "id": "form-inspection-produit-inspection_condition",
       "key": "inspection_condition",
-      "validate": {
-        "required": true
-      },
       "values": [
         {
-          "label": "Neuf / jamais utilisé",
+          "label": "Neuf",
           "value": "new"
         },
         {
-          "label": "Bon état",
-          "value": "good"
+          "label": "Essayé uniquement",
+          "value": "tried_on"
         },
         {
-          "label": "Usé",
-          "value": "used"
+          "label": "Porté",
+          "value": "worn"
+        },
+        {
+          "label": "Lavé",
+          "value": "washed"
+        },
+        {
+          "label": "Modifié",
+          "value": "modified"
         },
         {
           "label": "Endommagé",
@@ -122,39 +77,16 @@
           "label": "Défectueux",
           "value": "defective"
         }
-      ]
-    },
-    {
-      "label": "Accessoires",
-      "type": "select",
-      "id": "form-inspection-produit_inspection_accessories_12",
-      "key": "inspection_accessories",
+      ],
       "validate": {
         "required": true
-      },
-      "values": [
-        {
-          "label": "Complets",
-          "value": "complete"
-        },
-        {
-          "label": "Incomplets",
-          "value": "incomplete"
-        },
-        {
-          "label": "Sans objet",
-          "value": "not_applicable"
-        }
-      ]
+      }
     },
     {
-      "label": "Défaut déclaré confirmé ?",
+      "label": "Étiquettes d’origine attachées",
       "type": "select",
-      "id": "form-inspection-produit_inspection_defect_confirmed_13",
-      "key": "inspection_defect_confirmed",
-      "validate": {
-        "required": true
-      },
+      "id": "form-inspection-produit-original_tags_attached",
+      "key": "original_tags_attached",
       "values": [
         {
           "label": "Oui",
@@ -165,26 +97,62 @@
           "value": "no"
         },
         {
-          "label": "Sans objet",
-          "value": "not_applicable"
+          "label": "Je ne sais pas",
+          "value": "unknown"
         }
       ]
     },
     {
-      "label": "Différences avec la demande",
-      "type": "textarea",
-      "id": "form-inspection-produit_inspection_differences_14",
-      "key": "inspection_differences",
-      "description": "Laisser vide si aucune"
+      "label": "Article endommagé",
+      "type": "select",
+      "id": "form-inspection-produit-item_damaged",
+      "key": "item_damaged",
+      "values": [
+        {
+          "label": "Oui",
+          "value": "yes"
+        },
+        {
+          "label": "Non",
+          "value": "no"
+        },
+        {
+          "label": "Je ne sais pas",
+          "value": "unknown"
+        }
+      ]
     },
     {
-      "label": "Résultat de l'inspection",
-      "type": "radio",
-      "id": "form-inspection-produit_inspection_result_15",
+      "label": "Défaut déclaré confirmé",
+      "type": "select",
+      "id": "form-inspection-produit-defect_confirmed",
+      "key": "defect_confirmed",
+      "values": [
+        {
+          "label": "Oui",
+          "value": "yes"
+        },
+        {
+          "label": "Non",
+          "value": "no"
+        },
+        {
+          "label": "Je ne sais pas",
+          "value": "unknown"
+        }
+      ]
+    },
+    {
+      "label": "Différences constatées",
+      "type": "textarea",
+      "id": "form-inspection-produit-inspection_differences",
+      "key": "inspection_differences"
+    },
+    {
+      "label": "Résultat de l’inspection",
+      "type": "select",
+      "id": "form-inspection-produit-inspection_result",
       "key": "inspection_result",
-      "validate": {
-        "required": true
-      },
       "values": [
         {
           "label": "Conforme à la demande",
@@ -194,13 +162,24 @@
           "label": "Non conforme",
           "value": "non_conforming"
         }
-      ]
+      ],
+      "validate": {
+        "required": true
+      }
+    },
+    {
+      "label": "Contrôle qualité validé",
+      "type": "checkbox",
+      "id": "form-inspection-produit-qualityCheckPassed",
+      "key": "qualityCheckPassed",
+      "description": "Cette valeur alimente la passerelle BPMN.",
+      "defaultValue": false
     }
   ],
   "executionPlatform": "Camunda Cloud",
-  "executionPlatformVersion": "8.5.0",
+  "executionPlatformVersion": "8.10.0",
   "exporter": {
     "name": "Camunda Modeler",
-    "version": "5.22.0"
+    "version": "5.52.0"
   }
 }

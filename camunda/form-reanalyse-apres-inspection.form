@@ -1,0 +1,74 @@
+{
+  "schemaVersion": 11,
+  "type": "default",
+  "id": "form-reanalyse-apres-inspection",
+  "components": [
+    {
+      "type": "text",
+      "id": "form-reanalyse-apres-inspection-title",
+      "text": "# Réévaluation après inspection"
+    },
+    {
+      "label": "Résultat de l’inspection",
+      "type": "textfield",
+      "id": "form-reanalyse-apres-inspection-inspection_result",
+      "key": "inspection_result",
+      "readonly": true
+    },
+    {
+      "label": "Écarts constatés",
+      "type": "textarea",
+      "id": "form-reanalyse-apres-inspection-inspection_differences",
+      "key": "inspection_differences",
+      "readonly": true
+    },
+    {
+      "label": "Suite proposée",
+      "type": "select",
+      "id": "form-reanalyse-apres-inspection-reevaluation_outcome",
+      "key": "reevaluation_outcome",
+      "values": [
+        {
+          "label": "Conserver la solution",
+          "value": "keep_approved"
+        },
+        {
+          "label": "Remboursement sans retour",
+          "value": "returnless_refund"
+        },
+        {
+          "label": "Refus motivé",
+          "value": "motivated_refusal"
+        },
+        {
+          "label": "Revue manuelle complémentaire",
+          "value": "manual_review"
+        }
+      ],
+      "validate": {
+        "required": true
+      }
+    },
+    {
+      "label": "Retour physique encore requis",
+      "type": "checkbox",
+      "id": "form-reanalyse-apres-inspection-returnRequired",
+      "key": "returnRequired"
+    },
+    {
+      "label": "Justification de la réévaluation",
+      "type": "textarea",
+      "id": "form-reanalyse-apres-inspection-reevaluation_reason",
+      "key": "reevaluation_reason",
+      "validate": {
+        "required": true
+      }
+    }
+  ],
+  "executionPlatform": "Camunda Cloud",
+  "executionPlatformVersion": "8.10.0",
+  "exporter": {
+    "name": "Camunda Modeler",
+    "version": "5.52.0"
+  }
+}

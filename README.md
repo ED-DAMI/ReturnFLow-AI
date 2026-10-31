@@ -1,6 +1,6 @@
 # ReturnFlow AI
 
-**Service après-vente : gestion d’un retour produit de la demande à la résolution**  
+**Gestion des retours de vêtements — cas d’étude académique inspiré des politiques publiques de SHEIN Maroc**  
 BPMN · Process Mining · Workflow AI
 
 Projet du module *BPMN, Process Mining & Workflow AI* — IDSI 3
@@ -11,30 +11,38 @@ Projet du module *BPMN, Process Mining & Workflow AI* — IDSI 3
 
 > **Statut :** ce document décrit le périmètre cible du projet. Les fonctionnalités sont à considérer comme prévues jusqu’à leur implémentation et leur validation.
 >
-> Les données, transports, remboursements, échanges et réparations sont simulés. Aucun paiement réel n’est effectué.
+> Le processus interne de SHEIN n’est pas reproduit et aucune donnée interne n’est utilisée. Les données, transports et opérations de remboursement sont simulés; aucun paiement réel n’est effectué.
 
 ---
 
 ## 1. Présentation
 
-ReturnFlow AI est un mini-système SAV intelligent permettant de gérer un retour produit depuis la demande du client jusqu’à la résolution et la clôture du dossier.
+ReturnFlow AI est un cas d’étude académique de gestion des retours de vêtements, inspiré des politiques publiques de SHEIN Maroc. Il ne décrit pas le processus interne réel de SHEIN.
 
 Le projet combine :
 
-- **BPMN** : modélisation AS-IS et TO-BE, puis exécution du processus TO-BE sur Camunda 8.
+- **BPMN** : processus manuel de référence AS-IS et processus cible TO-BE sur Camunda 8.10.
 - **Process Mining** : analyse d’event logs simulés avec PM4Py.
-- **Workflow AI** : analyse et rédaction assistées par un LLM via LangChain et OpenRouter.
+<<<<<<< HEAD
+- **Workflow AI** : RAG sur PostgreSQL + pgvector pour retrouver les politiques; LLM via LangChain/OpenRouter pour classifier et extraire les faits; règles déterministes/DMN pour décider.
 
 ### Principe directeur
 
-> Camunda orchestre le processus. Les règles métier déterminent l’éligibilité. L’IA analyse, résume, propose et rédige. L’agent SAV valide les décisions métier.
+> Camunda orchestre. Le RAG retrouve les sources. Le LLM comprend la demande et extrait des faits. Les règles déterministes évaluent l’éligibilité. L’agent SAV valide la suite.
+=======
+- **Workflow AI** : un worker Camunda nommé `shein-agent` exécute les 14 tâches automatisées du BPMN. L’en-tête `operation` distingue leurs traitements : recherche RAG, analyse LLM, évaluation déterministe, notifications et résolutions simulées.
+
+### Principe directeur
+
+> Camunda orchestre. Le worker `shein-agent` exécute les tâches automatisées et reçoit le nom de l’opération dans l’en-tête `operation`. Le LLM analyse et extrait les faits; les règles déterministes évaluent l’éligibilité; l’agent SAV humain valide la suite.
+>>>>>>> israe
 
 Deux décisions sont distinguées :
 
-1. **Autoriser le retour**, avant l’expédition du produit.
-2. **Confirmer la résolution finale**, après réception et inspection.
+1. **Valider la proposition et le besoin d’un retour physique**, après l’évaluation des règles.
+2. **Confirmer le mode de traitement**, après réception et inspection si un retour physique est requis.
 
-L’autorisation de retour ne constitue donc pas une validation automatique du remboursement.
+La recommandation du LLM ne décide jamais seule de l’éligibilité.
 
 ---
 
@@ -57,17 +65,15 @@ L’autorisation de retour ne constitue donc pas une validation automatique du r
 
 - Saisie de la demande de retour.
 - Recherche de la commande et de l’article concerné.
-- Vérification des informations.
+- Vérification des informations et correction des références.
 - Demande de complément.
-- Contrôle d’éligibilité.
-- Analyse IA ou analyse manuelle.
-- Autorisation ou refus par l’agent SAV.
-- Création d’un identifiant de retour RMA.
+- Classification du motif et recherche de politiques via RAG.
+- Extraction de faits avec leurs sources, ou analyse manuelle de repli.
+- Contrôle déterministe de l’éligibilité et validation humaine.
 - Envoi des instructions de retour.
 - Réception simulée du produit.
-- Inspection du produit.
-- Validation de la résolution finale.
-- Remboursement, échange ou réparation simulé.
+- Inspection du vêtement, des étiquettes et de la conformité.
+- Remboursement simulé selon le mode validé, ou traitement manuel d’une exception.
 - Notification finale.
 - Clôture du dossier.
 - Analyse Process Mining.
@@ -81,29 +87,32 @@ L’autorisation de retour ne constitue donc pas une validation automatique du r
 - Portail client complet.
 - Données personnelles réelles.
 
-> Les règles et délais sont des hypothèses pédagogiques. Ils ne constituent pas une politique commerciale réelle ni une interprétation juridique.
+> Les règles du cas d’étude reprennent des politiques publiques citées; elles ne décrivent pas de processus interne SHEIN ni une interprétation juridique.
 
 ---
 
 ## 4. Architecture
 
 ```text
-Camunda 8
+Camunda 8.10
 BPMN · Forms · Tasklist · Operate
+<<<<<<< HEAD
               │
               │ REST Connector
               ▼
          API FastAPI
 Validation · Règles · Gestion des erreurs
               │
-              ├──► SQLite
+              ├──► PostgreSQL
               │    Commandes · Articles · Retours
               │
-              ├──► policies.json
-              │    Règles pédagogiques
+              ├──► pgvector
+              │    Politiques · FAQ · Guides · Fiches produit
               │
               └──► LangChain → OpenRouter
-                   Analyse et rédaction IA
+                   Classification · Extraction · Réponse
+
+Éligibilité déterministe / DMN
 
 Event logs simulés AS-IS / TO-BE
               │
@@ -113,6 +122,26 @@ Variantes · Performance · Découverte · Conformité
 ```
 
 Schéma détaillé prévu : `docs/architecture.png`.
+=======
+              │ jobs, type = `shein-agent`
+              ▼
+       Worker `shein-agent`
+       dispatch via `operation`
+              │
+     ┌────────┼─────────┐
+     ▼        ▼         ▼
+Commandes   RAG + LLM   Règles/DMN
+et contrôles sources    déterministes
+              │
+              ▼
+ Réponses · notifications · résolutions simulées
+
+Tâches humaines : validations SAV, réception et inspection
+Process Mining : journaux TO-BE / AS-IS → PM4Py
+```
+
+Dans le BPMN TO-BE, les 14 tâches de service partagent le type de job `shein-agent`. Leur en-tête `operation` indique le traitement attendu. Le worker et ses intégrations restent à implémenter; aucun stockage PostgreSQL/pgvector n’est modélisé.
+>>>>>>> israe
 
 ---
 
@@ -121,11 +150,15 @@ Schéma détaillé prévu : `docs/architecture.png`.
 | Acteur | Responsabilité |
 |--------|----------------|
 | Client | Soumettre la demande, fournir les compléments et retourner le produit |
-| Agent SAV | Autoriser le retour et valider la résolution finale |
+| Agent SAV | Valider la proposition après contrôle d’éligibilité et confirmer le traitement après inspection |
 | Agent entrepôt | Confirmer la réception et inspecter le produit |
 | Responsable SAV | Recevoir les escalades |
+<<<<<<< HEAD
 | Système | Appliquer les règles, enregistrer les opérations et notifier |
-| Assistant IA | Analyser, résumer, proposer et rédiger |
+| Assistant IA | Classifier, résumer, proposer et rédiger avec des sources RAG |
+=======
+| `shein-agent` (worker) | Exécuter les 14 tâches automatisées selon l’en-tête `operation` : recherche, RAG, analyse, règles, messages, notifications et résolution simulée |
+>>>>>>> israe
 
 Pour la démonstration, certaines actions du client et de l’entrepôt sont représentées par des formulaires.
 
@@ -178,61 +211,48 @@ Ces problèmes sont représentés dans les données simulées.
 
 | # | Étape | Type BPMN prévu |
 |---|-------|-----------------|
-| 1 | Demande de retour reçue | Start Event |
-| 2 | Saisir la demande | User Task + Form |
-| 3 | Récupérer la commande et l’article | REST Service Task |
-| 4 | Commande et article trouvés ? | XOR Gateway |
-| 5 | Vérifier les informations | Service Task |
-| 6 | Demande complète ? | XOR Gateway |
-| 7 | Vérifier l’éligibilité | Service Task ou DMN |
-| 8 | Analyser la demande avec IA | REST Service Task |
-| 9 | Autoriser ou refuser le retour | User Task + Form |
-| 10 | Retour autorisé ? | XOR Gateway |
-| 11 | Créer le dossier RMA | REST Service Task |
-| 12 | Envoyer les instructions | Service Task |
-| 13 | Confirmer la réception du produit | User Task + Form |
-| 14 | Inspecter le produit | User Task + Form |
-| 15 | Valider la résolution finale | User Task + Form |
-| 16 | Exécuter la résolution | Sous-processus simulé |
-| 17 | Générer la réponse finale | REST Service Task + LLM |
-| 18 | Notifier le client | Service Task |
-| 19 | Clôturer le dossier | REST Service Task |
-| 20 | Dossier terminé | End Event |
+| 1 | Saisir la demande et récupérer commande/article/fiche produit | User Task + Service Task |
+| 2 | Corriger les références si la commande est introuvable | User Task + XOR Gateway |
+| 3 | Vérifier la complétude et demander un complément si nécessaire | Service Task + User Task + Timer 48 h |
+| 4 | Classifier le motif avec le LLM, puis vérifier sa disponibilité | Service Task + XOR Gateway |
+<<<<<<< HEAD
+| 5 | Rechercher la politique avec RAG dans PostgreSQL/pgvector | Service Task + XOR Gateway |
+=======
+| 5 | Rechercher les politiques avec le RAG de `shein-agent` | Service Task (`operation=retrieve-return-policy-rag`) + XOR Gateway |
+>>>>>>> israe
+| 6 | Extraire les faits et les sources, ou effectuer une analyse manuelle | Service Task / User Task |
+| 7 | Évaluer l’éligibilité par règles déterministes/DMN | Service Task + XOR Gateway |
+| 8 | Valider la proposition et le besoin d’un retour physique | User Task + SLA 24 h |
+| 9 | Si requis, recevoir et inspecter le vêtement | User Tasks + contrôle qualité |
+| 10 | Confirmer le mode de remboursement ou traiter une exception | User Task + sous-processus simulé |
+| 11 | Générer la réponse, notifier le client et clôturer | Service Tasks + User Task |
 
+<<<<<<< HEAD
+=======
+Les 14 Service Tasks du BPMN sont routées vers le même worker `shein-agent`; l’en-tête `operation` sélectionne l’action. Les User Tasks restent assignées aux personnes concernées et conservent leurs formulaires Camunda.
+
+>>>>>>> israe
 ### Vue simplifiée
 
 ```text
-Demande reçue
+Demande → commande et article
     ↓
-Saisie et recherche de commande
+Complétude ? → correction / complément si nécessaire
     ↓
-Vérification des informations
-    ├── Incomplètes → Demander un complément → Vérifier à nouveau
-    └── Complètes
-          ↓
-Contrôle d’éligibilité
-          ↓
-Analyse IA ou analyse manuelle
-          ↓
-Validation SAV
-    ├── Refus → Notification → Clôture
-    └── Autorisation
-          ↓
-Création RMA et instructions
-          ↓
-Réception du produit
-          ↓
-Inspection
-          ↓
-Validation de la résolution
-          ↓
-Remboursement / Échange / Réparation / Refus motivé
-          ↓
-Exécution et vérification du résultat
-          ↓
-Notification finale
-          ↓
-Clôture
+LLM → RAG + sources → extraction des faits
+    └── IA/RAG indisponible → analyse manuelle
+    ↓
+Règles déterministes / DMN → éligibilité ?
+    ├── Non → refus sourcé → notification → fin
+    └── Oui → validation humaine + SLA 24 h
+              ↓
+       Retour physique requis ?
+       ├── Non ─────────────────────┐
+       └── Oui → réception → inspection → contrôle qualité
+                                      ↓
+                     choix du traitement simulé / exception
+                                      ↓
+                         réponse → notification → clôture
 ```
 
 ### Branches alternatives
@@ -284,13 +304,7 @@ Lorsqu’il se déclenche :
 
 ### Produit non reçu
 
-Un délai configurable peut être ajouté pendant l’attente du produit :
-
-- relance du client ;
-- examen manuel du dossier ;
-- éventuelle clôture motivée.
-
-Pour une démonstration rapide, les durées peuvent être réduites dans une version de test du BPMN.
+Le BPMN courant ne modélise pas de timer distinct après l’envoi des instructions de retour. Le délai de non-réception reste à décider avant d’ajouter cette branche.
 
 ---
 
@@ -300,7 +314,6 @@ Pour une démonstration rapide, les durées peuvent être réduites dans une ver
 
 L’agent entrepôt enregistre :
 
-- l’identifiant RMA ;
 - la date de réception ;
 - la quantité reçue ;
 - un commentaire éventuel.
@@ -312,22 +325,22 @@ L’agent vérifie :
 - la référence du produit ;
 - la quantité ;
 - l’état constaté ;
-- la présence des accessoires ;
+- la présence des étiquettes d’origine ;
 - le défaut déclaré ;
 - les éventuelles différences avec la demande.
 
-### Résolutions possibles
+### Modes de traitement prévus par le BPMN
 
-| Résolution | Traitement simulé |
-|------------|-------------------|
-| Remboursement | Enregistrement du montant et d’une référence fictive |
-| Échange | Création d’une référence de remplacement fictive |
-| Réparation | Création d’un dossier de réparation fictif |
-| Refus motivé | Enregistrement de la justification et du traitement prévu |
+| Mode | Traitement simulé |
+|------|-------------------|
+| Portefeuille SHEIN | Enregistrement d’un remboursement fictif sur portefeuille |
+| Moyen de paiement initial | Enregistrement d’un remboursement fictif sur le moyen initial |
+| Sans retour physique | Enregistrement d’un remboursement fictif sans retour |
+| Exception SAV | Prise en charge et justification manuelles |
 
 La clôture intervient uniquement après l’enregistrement de la résolution et de la notification finale.
 
-Si l’exécution échoue, le dossier reste ouvert et passe en traitement manuel.
+Le BPMN courant n’a pas encore de branche explicite d’erreur après l’échec d’une exécution simulée; ce comportement reste à modéliser.
 
 ---
 
@@ -339,13 +352,16 @@ Sortie structurée attendue :
 
 ```json
 {
-  "category": "defective_product",
-  "summary": "Le client signale un produit qui ne fonctionne plus.",
+  "category": "SIZE_FIT",
+  "summary": "La taille semble trop petite; les étiquettes sont encore attachées.",
   "sentiment": "negative",
   "urgency": "normal",
-  "missing_information": [],
-  "suggested_resolution": "exchange",
-  "requires_manual_review": false
+  "days_since_receipt": 8,
+  "item_worn": false,
+  "item_washed": false,
+  "original_tags_attached": true,
+  "policy_source_ids": ["POLICY_CLOTHING_01", "POLICY_RETURN_WINDOW_01"],
+  "recommendation": "review_eligibility"
 }
 ```
 
@@ -353,7 +369,8 @@ Cette sortie est illustrative et doit correspondre aux schémas réellement impl
 
 ### Utilisations prévues
 
-- Classification du motif.
+- Recherche de politiques publiques pertinentes avec RAG et références de sources.
+- Classification du motif et extraction de faits structurés.
 - Résumé de la demande.
 - Suggestion de traitement.
 - Aide à la rédaction d’un complément.
@@ -362,9 +379,15 @@ Cette sortie est illustrative et doit correspondre aux schémas réellement impl
 
 ### Garde-fous
 
+<<<<<<< HEAD
 - Validation des sorties avec Pydantic.
 - Séparation entre `ai_suggestion` et `agent_decision`.
-- Aucune exécution de remboursement sur la seule proposition du LLM.
+- Le LLM ne décide pas l’éligibilité et ne déclenche aucun remboursement.
+=======
+- Prévoir la validation des sorties structurées avec Pydantic lors de l’implémentation du worker.
+- Séparation entre `ai_suggestion` et `agent_decision`.
+- Le LLM de `shein-agent` ne décide pas l’éligibilité; les règles/DMN évaluent le dossier et les validations SAV restent humaines. Les opérations de résolution sont simulées.
+>>>>>>> israe
 - Aucun secret transmis au modèle.
 - Données de démonstration fictives.
 - Fallback manuel en cas d’erreur.
@@ -378,18 +401,28 @@ Les recommandations de l’IA restent consultatives.
 
 | Fichier | Utilisation |
 |---------|-------------|
-| `form-demande-retour.form` | Commande, article, quantité, motif, description |
-| `form-complement-information.form` | Corrections et informations manquantes |
-| `form-autorisation-sav.form` | Éligibilité, analyse IA, autorisation ou refus |
-| `form-reception-produit.form` | Réception et quantité reçue |
-| `form-inspection-produit.form` | État, référence, accessoires, défaut |
-| `form-resolution-sav.form` | Résolution finale et justification |
+| `form-demande-retour.form` | Références, motif, solution souhaitée, description et état déclaré du vêtement |
+| `form-correction-references.form` | Correction de commande/article introuvable |
+| `form-complement-information.form` | Réponse du client aux informations manquantes |
+| `form-analyse-manuelle.form` | Repli humain quand le LLM/RAG n’est pas disponible |
+| `form-validation-sav.form` | Sources RAG, résultat des règles et validation de l’agent |
+| `form-escalade-sav.form` | Relance et suivi du SLA par le responsable SAV |
+| `form-reception-produit.form` | Réception simulée du vêtement retourné |
+| `form-inspection-produit.form` | État, étiquettes, défaut et contrôle qualité |
+| `form-reanalyse-apres-inspection.form` | Réévaluation après constat d’un écart |
+| `form-resolution-sav.form` | Mode de remboursement simulé et justification |
+| `form-resolution-exception.form` | Traitement manuel d’une exception |
+| `form-cloture-dossier.form` | Statut de notification et clôture du dossier |
 
 Une pièce justificative peut être représentée par une référence fictive. Le stockage réel de fichiers n’est pas nécessaire au périmètre minimal.
 
 ---
 
+<<<<<<< HEAD
 ## 12. Modèle de données
+=======
+## 12. Variables métier du processus
+>>>>>>> israe
 
 ### Commandes et articles
 
@@ -449,15 +482,24 @@ Chaque retour identifie une ligne de commande et une quantité précise.
 
 ```text
 ReturnFlow-AI/
+├── backend/
+│   └── .gitkeep                 # emplacement réservé au worker `shein-agent`
 ├── camunda/
 │   ├── returnflow_as_is.bpmn
 │   ├── returnflow_to_be.bpmn
+<<<<<<< HEAD
 │   ├── form-demande-retour.form
+│   ├── form-correction-references.form
 │   ├── form-complement-information.form
-│   ├── form-autorisation-sav.form
+│   ├── form-analyse-manuelle.form
+│   ├── form-validation-sav.form
+│   ├── form-escalade-sav.form
 │   ├── form-reception-produit.form
 │   ├── form-inspection-produit.form
+│   ├── form-reanalyse-apres-inspection.form
 │   ├── form-resolution-sav.form
+│   ├── form-resolution-exception.form
+│   ├── form-cloture-dossier.form
 │   └── regles-retour.dmn
 ├── backend/
 │   ├── app.py
@@ -475,21 +517,42 @@ ReturnFlow-AI/
 │   ├── event_log_to_be.csv
 │   └── outputs/
 ├── docs/
+│   ├── cadrage_metier.md
 │   ├── architecture.png
 │   ├── demo_scenarios.md
 │   ├── captures/
 │   └── presentation.pdf
 ├── .gitignore
+=======
+│   └── *.form                   # formulaires du processus TO-BE
+├── docs/
+│   └── cadrage_metier.md
+├── process_mining/
+│   ├── .gitkeep
+│   └── outputs/.gitkeep
+├── src/returnflow_ai/
+│   └── __init__.py
+├── .env.example
+├── .gitignore
+├── .python-version
+├── pyproject.toml
+>>>>>>> israe
 ├── requirements.txt
+├── uv.lock
 └── README.md
 ```
 
-La base SQLite et le fichier `.env` sont créés localement.
+<<<<<<< HEAD
+La configuration PostgreSQL/pgvector et le fichier `.env` sont gérés localement; aucun secret ne doit être versionné.
+=======
+Le dépôt contient le BPMN, les formulaires et le premier socle de dépendances pour le RAG et l’agent. Le worker `shein-agent` reste à implémenter. Aucune base PostgreSQL/pgvector n’est requise par le BPMN.
+>>>>>>> israe
 
 ---
 
 ## 14. Prérequis
 
+<<<<<<< HEAD
 - Python 3.11.
 - Git.
 - Camunda 8 avec un environnement local fonctionnel.
@@ -667,6 +730,113 @@ Les dates de l’exemple sont fictives.
 
 ### Exécution
 
+=======
+- Git et Python selon la version indiquée dans pyproject.toml.
+- `uv` pour installer les dépendances verrouillées (`uv sync`).
+- Camunda 8.10 et Camunda Desktop Modeler compatible.
+- Une clé API OpenRouter pour les opérations LLM.
+- Une clé Tavily si la recherche Web est utilisée par l’agent.
+- Un client Camunda/Zeebe à sélectionner pour l’implémentation du worker.
+
+Les dépendances initiales couvrent LangChain/LangGraph, l’accès à un modèle compatible OpenAI, ChromaDB pour l’index RAG, le traitement PDF et Tavily. Le client Camunda/Zeebe et le contrat d’exécution du worker restent à choisir.
+
+Pour installer l’environnement Python :
+
+```powershell
+uv sync
+```
+
+---
+
+## 15. Configuration prévue
+
+Copier `.env.example` vers `.env`, puis renseigner les clés nécessaires dans l’environnement local :
+
+```env
+OPENROUTER_API_KEY=
+OPENROUTER_BASE_URL=https://openrouter.ai/api/v1
+OPENROUTER_MODEL=
+TAVILY_API_KEY=
+```
+
+`TAVILY_API_KEY` est facultative si l’agent n’utilise pas la recherche Web. Ne pas versionner de clé réelle. Le BPMN ne requiert ni configuration PostgreSQL ni initialisation de base.
+
+---
+
+## 16. Déploiement et exécution
+
+1. Ouvrir `camunda/returnflow_to_be.bpmn` dans Camunda Modeler.
+2. Vérifier les formulaires et expressions, puis déployer le BPMN et les formulaires sur Camunda.
+3. Implémenter et démarrer un worker qui s’abonne au type de job `shein-agent`.
+4. Dans ce worker, lire l’en-tête `operation`, exécuter le traitement correspondant et compléter le job avec les variables attendues.
+5. Démarrer une instance, remplir le formulaire de demande, puis suivre les validations humaines dans Tasklist et l’exécution dans Operate.
+
+**État actuel :** le BPMN déclare ce routage, mais le worker n’est pas encore présent; les Service Tasks ne peuvent donc pas être exécutées avant son implémentation.
+
+---
+
+## 17. Contrat du worker `shein-agent`
+
+Chaque Service Task crée un job de type `shein-agent`. L’en-tête Camunda `operation` permet au worker unique de distinguer les traitements :
+
+| Valeur de `operation` | Traitement |
+|---------------------|------------|
+| `fetch-fashion-order-item` | Récupérer la commande, l’article et la fiche produit |
+| `validate-return-data` | Vérifier les informations minimales |
+| `classify-fashion-return` | Classifier le motif du retour |
+| `retrieve-return-policy-rag` | Rechercher les sources de politique avec le RAG |
+| `extract-grounded-return-facts` | Extraire les faits et preuves sourcées |
+| `evaluate-return-eligibility` | Appliquer les règles déterministes/DMN |
+| `generate-grounded-refusal-response` | Rédiger un refus expliqué et sourcé |
+| `notify-client` | Simuler une notification client |
+| `send-return-instructions` | Générer/envoyer les instructions de retour |
+| `refund-shein-wallet` | Enregistrer le remboursement simulé sur portefeuille |
+| `refund-original-payment` | Enregistrer le remboursement simulé sur le moyen initial |
+| `refund-without-return` | Enregistrer la résolution simulée sans retour |
+| `generate-grounded-final-response` | Rédiger la réponse finale sourcée |
+
+Les entrées et sorties précises de chaque opération doivent être définies avec les variables du BPMN avant l’implémentation. Les User Tasks et leurs formulaires restent traités par les utilisateurs humains.
+
+---
+
+## 18. Process Mining
+
+### Données
+
+Les logs sont entièrement simulés et générés avec une graine fixe.
+
+Objectif : **60 à 100 dossiers par version de processus**.
+
+Deux fichiers sont prévus :
+
+- `event_log_as_is.csv`
+- `event_log_to_be.csv`
+
+### Structure du log
+
+| Colonne | Description |
+|---------|-------------|
+| `case_id` | Identifiant du dossier |
+| `activity` | Nom de l’activité |
+| `start_timestamp` | Début de l’activité |
+| `end_timestamp` | Fin de l’activité |
+| `resource` | Acteur, worker ou système |
+| `result` | Résultat de l’activité |
+| `process_version` | `AS_IS` ou `TO_BE` |
+
+Exemple :
+
+```csv
+case_id,activity,start_timestamp,end_timestamp,resource,result,process_version
+RMA-001,Verifier eligibilite,2026-11-01T10:00:00,2026-11-01T10:00:02,shein-agent,eligible,TO_BE
+RMA-001,Autoriser retour,2026-11-01T10:30:00,2026-11-01T10:35:00,Agent01,authorized,TO_BE
+```
+
+Les dates de l’exemple sont fictives.
+
+### Exécution
+
+>>>>>>> israe
 Depuis la racine du dépôt :
 
 ```powershell
@@ -706,18 +876,18 @@ La conformité doit être évaluée par rapport à un modèle de référence exp
 
 | # | Scénario | Résultat attendu |
 |---|----------|------------------|
-| 1 | Retour accepté | Autorisation, réception, inspection, résolution et clôture |
-| 2 | Retour hors des règles | Refus motivé validé par le SAV |
-| 3 | Produit défectueux | Inspection puis échange ou réparation validé |
-| 4 | Informations manquantes | Boucle de complément |
-| 5 | Commande introuvable | Correction ou traitement manuel |
-| 6 | IA indisponible | Analyse manuelle sans blocage définitif |
-| 7 | JSON IA invalide | Rejet de la sortie et fallback |
-| 8 | SLA dépassé | Relance sans suppression de la tâche |
-| 9 | Produit non reçu | Relance puis traitement manuel |
-| 10 | Produit reçu non conforme | Inspection et décision motivée |
-| 11 | Résolution simulée en échec | Dossier maintenu ouvert |
-| 12 | Appel d’exécution répété | Pas de double remboursement simulé |
+| 1 | Demande éligible | Extraction sourcée, règles déterministes, validation agent |
+| 2 | Demande hors règles | Refus expliqué et notification |
+| 3 | Commande introuvable | Correction des références ou clôture |
+| 4 | Informations manquantes | Complément puis nouvelle vérification; clôture après 48 h |
+| 5 | IA indisponible | Analyse manuelle des faits et des règles |
+| 6 | Contexte RAG insuffisant | Revue manuelle sans décision LLM autonome |
+| 7 | SLA de validation dépassé | Escalade au responsable SAV après 24 h |
+| 8 | Retour physique non requis | Résolution simulée sans étape de réception |
+| 9 | Contrôle qualité conforme | Poursuite vers le mode de traitement choisi |
+| 10 | Contrôle qualité non conforme | Réévaluation humaine après inspection |
+| 11 | Mode de remboursement standard | Portefeuille ou moyen de paiement initial simulé |
+| 12 | Exception de traitement | Prise en charge manuelle et traçable |
 
 Détails prévus : `docs/demo_scenarios.md`.
 
@@ -744,7 +914,7 @@ Détails prévus : `docs/demo_scenarios.md`.
 4. Montrer le TO-BE dans Camunda.
 5. Soumettre une demande.
 6. Montrer les règles d’éligibilité et l’analyse IA.
-7. Valider l’autorisation dans Tasklist.
+7. Examiner les sources et la décision des règles, puis valider la proposition dans Tasklist.
 8. Simuler la réception.
 9. Compléter l’inspection.
 10. Valider et exécuter la résolution simulée.
@@ -753,12 +923,17 @@ Détails prévus : `docs/demo_scenarios.md`.
 
 ### Message de conclusion
 
+<<<<<<< HEAD
 > BPMN orchestre, les règles encadrent, l’IA assiste, l’humain décide et le Process Mining mesure.
+=======
+> Camunda orchestre, `shein-agent` exécute les tâches automatisées, les règles encadrent l’éligibilité, l’agent SAV humain valide les décisions métier et le Process Mining mesure.
+>>>>>>> israe
 
 ---
 
 ## 22. Plan de réalisation
 
+<<<<<<< HEAD
 ### Phase 1 — Socle
 
 - [ ] Créer le dépôt.
@@ -798,6 +973,32 @@ Détails prévus : `docs/demo_scenarios.md`.
 - [ ] Ajouter les captures.
 - [ ] Finaliser le README.
 - [ ] Préparer la présentation.
+=======
+### Phase 1 — Modèle et contrat du worker
+
+- [x] Modéliser l’AS-IS et le TO-BE.
+- [x] Créer les formulaires humains du TO-BE.
+- [x] Router les tâches automatisées vers `shein-agent`.
+- [ ] Définir les variables d’entrée/sortie par valeur de l’en-tête `operation`.
+- [ ] Choisir le client Camunda/Zeebe et la configuration d’exécution.
+
+### Phase 2 — Implémentation de `shein-agent`
+
+- [ ] Implémenter le worker abonné au type de job `shein-agent`.
+- [ ] Ajouter la récupération des données de commande et les contrôles.
+- [ ] Intégrer RAG et LLM avec sources et sorties structurées.
+- [ ] Implémenter les règles déterministes/DMN.
+- [ ] Ajouter réponses, notifications et résolutions simulées.
+- [ ] Gérer indisponibilités, erreurs, reprises et idempotence.
+- [ ] Préserver les validations SAV et les autres User Tasks.
+
+### Phase 3 — Process Mining et livraison
+
+- [ ] Générer les journaux AS-IS et TO-BE.
+- [ ] Produire les analyses PM4Py.
+- [ ] Vérifier les scénarios de démonstration dans Camunda.
+- [ ] Ajouter les captures et finaliser la présentation.
+>>>>>>> israe
 - [ ] Répéter la démonstration.
 
 ---
@@ -807,7 +1008,8 @@ Détails prévus : `docs/demo_scenarios.md`.
 | Membre | Responsabilités principales |
 |--------|-----------------------------|
 | Israe Yaaya | BPMN, formulaires, Process Mining, documentation métier |
-| Mohamed | FastAPI, LLM, SQLite, règles, gestion des erreurs |
+<<<<<<< HEAD
+| Mohamed | FastAPI, LLM, PostgreSQL/pgvector, règles et gestion des erreurs |
 
 ### Travail commun
 
@@ -817,6 +1019,15 @@ Détails prévus : `docs/demo_scenarios.md`.
 - Variables et mappings.
 - Tests.
 - Scénarios de démonstration.
+=======
+| Mohamed | Worker `shein-agent`, intégration LLM/RAG, règles et gestion des erreurs |
+
+### Travail commun
+
+- Contrat des variables Camunda et des opérations du worker.
+- Intégration du worker au processus Camunda.
+- Journaux et scénarios de démonstration.
+>>>>>>> israe
 - Présentation finale.
 
 Chaque membre doit pouvoir expliquer le fonctionnement global du système.
@@ -826,7 +1037,11 @@ Chaque membre doit pouvoir expliquer le fonctionnement global du système.
 ## 24. Sécurité et Git
 
 - Ne jamais versionner les secrets.
+<<<<<<< HEAD
 - Versionner `.env.example`, sans clé réelle.
+=======
+- Si un fichier `.env.example` est ajouté, n’y inclure aucune clé réelle.
+>>>>>>> israe
 - Utiliser uniquement des données fictives.
 - Ne pas afficher la clé API dans les captures.
 - Tester avant fusion dans `main`.

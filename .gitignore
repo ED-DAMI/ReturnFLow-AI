@@ -1,5 +1,33 @@
-.venv
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
 issues.bash
-.vscode
-.env
 
+# Local SQLite databases
+*.db
+*.db-shm
+*.db-wal
+*.sqlite
+*.sqlite3
+
+# Local secrets and configuration
+.env
+.env.*
+!.env.example
+
+# Editors and operating systems
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Temporary files and logs
+*.log
+*.tmp
+
+# Generated process-mining outputs; keep the directory marker
+process_mining/outputs/*
+!process_mining/outputs/.gitkeep

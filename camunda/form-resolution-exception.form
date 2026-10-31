@@ -1,0 +1,68 @@
+{
+  "schemaVersion": 11,
+  "type": "default",
+  "id": "form-resolution-exception",
+  "components": [
+    {
+      "type": "text",
+      "id": "form-resolution-exception-title",
+      "text": "# Traitement manuel d’une exception SAV"
+    },
+    {
+      "label": "Mode de traitement sélectionné",
+      "type": "textfield",
+      "id": "form-resolution-exception-refundMethod",
+      "key": "refundMethod",
+      "readonly": true
+    },
+    {
+      "label": "Traitement manuel",
+      "type": "select",
+      "id": "form-resolution-exception-manualResolutionType",
+      "key": "manualResolutionType",
+      "values": [
+        {
+          "label": "Remboursement après revue",
+          "value": "reviewed_refund"
+        },
+        {
+          "label": "Remplacement",
+          "value": "replacement"
+        },
+        {
+          "label": "Traitement SAV spécifique",
+          "value": "special_service"
+        },
+        {
+          "label": "Autre",
+          "value": "other"
+        }
+      ],
+      "validate": {
+        "required": true
+      }
+    },
+    {
+      "label": "Action exécutée ou motif du maintien en attente",
+      "type": "textarea",
+      "id": "form-resolution-exception-manualResolutionNote",
+      "key": "manualResolutionNote",
+      "validate": {
+        "required": true
+      }
+    },
+    {
+      "label": "Traitement manuel terminé",
+      "type": "checkbox",
+      "id": "form-resolution-exception-manualResolutionCompleted",
+      "key": "manualResolutionCompleted",
+      "defaultValue": false
+    }
+  ],
+  "executionPlatform": "Camunda Cloud",
+  "executionPlatformVersion": "8.10.0",
+  "exporter": {
+    "name": "Camunda Modeler",
+    "version": "5.52.0"
+  }
+}
