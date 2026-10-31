@@ -1,0 +1,21 @@
+# Frameworks RAG & Agents
+langgraph>=0.2.0
+langchain>=0.3.0
+langchain-community>=0.3.0
+
+# LLM et Embeddings
+langchain-openai>=0.2.0
+sentence-transformers>=3.0.0
+
+# Base de données vectorielle
+chromadb>=0.5.0
+
+# Traitement de documents
+pypdf>=4.0.0
+tiktoken>=0.7.0
+
+# Recherche Web pour l'agent
+tavily-python>=0.3.0
+
+# Variables d'environnement
+python-dotenv>=1.0.0
