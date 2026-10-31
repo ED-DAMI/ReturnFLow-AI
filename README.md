@@ -437,37 +437,50 @@ ReturnFlow-AI/
 │   └── outputs/.gitkeep
 ├── src/returnflow_ai/
 │   └── __init__.py
+├── .env.example
 ├── .gitignore
 ├── .python-version
 ├── pyproject.toml
+├── requirements.txt
+├── uv.lock
 └── README.md
 ```
 
-Le dépôt contient le BPMN et les formulaires; le worker `shein-agent` est planifié mais pas encore implémenté. Le processus ne dépend pas d’une base PostgreSQL/pgvector.
+Le dépôt contient le BPMN, les formulaires et le premier socle de dépendances pour le RAG et l’agent. Le worker `shein-agent` reste à implémenter. Aucune base PostgreSQL/pgvector n’est requise par le BPMN.
 
 ---
 
 ## 14. Prérequis
 
 - Git et Python selon la version indiquée dans pyproject.toml.
+- `uv` pour installer les dépendances verrouillées (`uv sync`).
 - Camunda 8.10 et Camunda Desktop Modeler compatible.
 - Une clé API OpenRouter pour les opérations LLM.
+- Une clé Tavily si la recherche Web est utilisée par l’agent.
 - Un client Camunda/Zeebe à sélectionner pour l’implémentation du worker.
 
-Les dépendances du worker ne sont pas encore définies dans le dépôt.
+Les dépendances initiales couvrent LangChain/LangGraph, l’accès à un modèle compatible OpenAI, ChromaDB pour l’index RAG, le traitement PDF et Tavily. Le client Camunda/Zeebe et le contrat d’exécution du worker restent à choisir.
+
+Pour installer l’environnement Python :
+
+```powershell
+uv sync
+```
 
 ---
 
 ## 15. Configuration prévue
 
-Configurer la clé OpenRouter dans l’environnement d’exécution du worker, par exemple :
+Copier `.env.example` vers `.env`, puis renseigner les clés nécessaires dans l’environnement local :
 
 ```env
-OPENROUTER_API_KEY=votre_cle_api
-OPENROUTER_MODEL=modele_a_configurer
+OPENROUTER_API_KEY=
+OPENROUTER_BASE_URL=https://openrouter.ai/api/v1
+OPENROUTER_MODEL=
+TAVILY_API_KEY=
 ```
 
-Ne pas versionner de clé réelle. Le BPMN ne requiert ni configuration PostgreSQL ni initialisation de base.
+`TAVILY_API_KEY` est facultative si l’agent n’utilise pas la recherche Web. Ne pas versionner de clé réelle. Le BPMN ne requiert ni configuration PostgreSQL ni initialisation de base.
 
 ---
 

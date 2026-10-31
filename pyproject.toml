@@ -7,7 +7,18 @@ authors = [
     { name = "ED-DAMI", email = "mohamed.eddami@usmba.ac.ma" }
 ]
 requires-python = ">=3.14"
-dependencies = []
+dependencies = [
+    "chromadb>=0.5.0",
+    "langchain>=0.3.0",
+    "langchain-community>=0.3.0",
+    "langchain-openai>=0.2.0",
+    "langgraph>=0.2.0",
+    "pypdf>=4.0.0",
+    "python-dotenv>=1.0.0",
+    "sentence-transformers>=3.0.0",
+    "tavily-python>=0.3.0",
+    "tiktoken>=0.7.0",
+]
 
 [project.scripts]
 returnflow-ai = "returnflow_ai:main"
