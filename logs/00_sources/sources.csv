@@ -1,0 +1,10 @@
+source_id,type,title,url,usage,authenticity
+SHEIN_API_01,official_api,SHEIN Return API catalogue,https://open.sheincorp.com/documents/apidoc/2000004,Schema des retours,official
+SHEIN_API_02,official_api,Query return order list,https://open.sheincorp.com/documents/apidoc/detail/3001281,Statuts et timestamps retours,official
+SHEIN_API_03,official_api,Query return order details,https://open.sheincorp.com/documents/apidoc/detail/3001282-2000004,Details produits/logistique/timestamps,official
+SHEIN_API_04,official_api,After-sales order list,https://open.sheincorp.com/documents/apidoc/detail/3002061,Machine d'etat apres-vente,official
+SHEIN_API_05,official_doc,After-sales state machine,https://open.sheincorp.com/documents/system/f7b0b584-28d2-4b9f-a5b8-55dca5ba4056,Definition des 16 statuts,official
+SHEIN_GH_01,public_dataset,Shein dataset samples,https://github.com/luminati-io/Shein-dataset-samples,Produits et attributs,public_third_party
+SHEIN_GH_02,public_project,shein_manager,https://github.com/fangwater/shein_manager,Exemple de synchronisation API vers PostgreSQL,public_third_party
+MENDELEY_01,public_dataset,ShoppingAppReviews Dataset,https://data.mendeley.com/datasets/chr5b94c6y/2,Avis application SHEIN,public_research
+MENDELEY_02,public_dataset,Arabic Customers Reviews in Fashion Retail,https://data.mendeley.com/datasets/vh85c2bcp7/1,Avis fashion pour NLP,public_research

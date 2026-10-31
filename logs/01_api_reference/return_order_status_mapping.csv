@@ -1,0 +1,9 @@
+status_code,status_en,status_fr,source_field
+1,closed,ferme,returnOrderStatus
+2,applied,demande_enregistree,returnOrderStatus
+3,canceled,annule,returnOrderStatus
+5,received,recu,returnOrderStatus
+6,delivered,livre,returnOrderStatus
+7,pending_handover,en_attente_de_remise,returnOrderStatus
+8,waiting_shein_warehouse_transit,en_attente_transit_entrepot_shein,returnOrderStatus
+9,completed,termine,returnOrderStatus

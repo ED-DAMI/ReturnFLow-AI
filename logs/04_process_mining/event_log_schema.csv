@@ -1,0 +1,23 @@
+column,type,required,description
+case_id,string,yes,Identifiant du dossier RMA utilise comme case ID PM4Py
+activity,string,yes,Nom de l'activite executee
+timestamp,datetime,yes,Horodatage de l'evenement
+resource,string,yes,Acteur ou systeme responsable
+return_order_no,string,yes,Numero de retour synthetique
+order_id,string,yes,Numero de commande synthetique
+product_id,string,yes,Identifiant produit
+sku,string,yes,SKU produit
+product_category,string,yes,Categorie de vetement
+size,string,yes,Taille
+color,string,yes,Couleur
+fabric,string,yes,Matiere ou tissu
+return_reason,string,yes,Motif metier du retour
+aftersales_sub_status,integer,no,Statut rapproche de la machine d'etat SHEIN
+return_order_status,integer,no,Statut rapproche de l'API returnOrderStatus
+eligibility,string,yes,eligible/refused/pending
+resolution,string,no,refund/exchange/repair/manual/none
+ai_category,string,no,Categorie extraite par l'IA
+ai_confidence,float,no,Score synthetique de confiance
+sla_breached,boolean,yes,Depassement SLA agent
+variant,string,yes,Variante de processus synthetique
+is_synthetic,boolean,yes,Toujours true dans ce corpus

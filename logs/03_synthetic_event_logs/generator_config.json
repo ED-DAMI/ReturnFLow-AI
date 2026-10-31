@@ -1,0 +1,24 @@
+{
+  "seed": 42,
+  "cases": 200,
+  "period": "2026-09-01 to 2026-10-30",
+  "reasons": [
+    "SIZE_FIT",
+    "COLOR_MISMATCH",
+    "FABRIC_QUALITY",
+    "SHAPE_CUT",
+    "DEFECTIVE",
+    "WRONG_ITEM",
+    "NOT_AS_DESCRIBED"
+  ],
+  "variants": [
+    "standard_accepted",
+    "standard_refused",
+    "missing_information",
+    "ai_fallback_manual",
+    "sla_escalation",
+    "refund_without_return",
+    "qc_exception"
+  ],
+  "provenance": "synthetic academic data inspired by SHEIN public API schemas"
+}
