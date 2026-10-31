@@ -1,8 +1,8 @@
 <?xml version='1.0' encoding='UTF-8'?>
 <bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" xmlns:zeebe="http://camunda.org/schema/zeebe/1.0" xmlns:modeler="http://camunda.org/schema/modeler/1.0" id="Definitions_ReturnFlowAI" targetNamespace="http://returnflow.ai/bpmn" exporter="Camunda Modeler" exporterVersion="5.52.0" modeler:executionPlatform="Camunda Cloud" modeler:executionPlatformVersion="8.10.0">
   <bpmn:process id="returnflow-ai-shein-rag" name="ReturnFlow AI - Cas académique SHEIN | Retours vêtements + RAG" isExecutable="true">
-    <bpmn:documentation>Cas d'étude académique inspiré des politiques publiques de retour SHEIN Maroc. Le processus interne réel de SHEIN n'est pas reproduit. Périmètre: vêtements et motifs taille/fit, couleur, tissu/qualité, coupe/forme, article défectueux, mauvais article, non conforme à la description. Le RAG récupère les règles pertinentes depuis PostgreSQL + pgvector; le LLM comprend et extrait des faits; la décision d'éligibilité reste déterministe (règles/DMN) et la décision humaine finale reste traçable.</bpmn:documentation>
-    <bpmn:dataStoreReference id="DataStoreRef_PolicyVector" name="PostgreSQL + pgvector&#10;Corpus RAG SHEIN" dataStoreRef="DataStore_PolicyVector"/>
+    <bpmn:documentation>Cas d'étude académique inspiré des politiques publiques de retour SHEIN Maroc. Le processus interne réel de SHEIN n'est pas reproduit. Périmètre: vêtements et motifs taille/fit, couleur, tissu/qualité, coupe/forme, article défectueux, mauvais article, non conforme à la description. Le worker unique shein-agent traite toutes les tâches automatisées: recherche de commande, contrôles, RAG, extraction des faits, règles/DMN, génération des réponses, notifications et résolution simulée. La décision humaine SAV reste traçable.</bpmn:documentation>
+    <bpmn:textAnnotation id="TextAnnotation_SheinAgent"><bpmn:text>shein-agent&#10;Worker unique des tâches automatisées</bpmn:text></bpmn:textAnnotation>
     <bpmn:startEvent id="StartEvent_ReturnRequest" name="Demande de retour reçue">
       <bpmn:outgoing>Flow_Start_To_Submit</bpmn:outgoing>
     </bpmn:startEvent>
@@ -16,7 +16,7 @@
     </bpmn:userTask>
     <bpmn:serviceTask id="Task_FetchOrder" name="Récupérer la commande, l'article et la fiche produit">
       <bpmn:extensionElements>
-        <zeebe:taskDefinition type="fetch-fashion-order-item" retries="3"/>
+        <zeebe:taskDefinition type="shein-agent" retries="3"/><zeebe:taskHeaders><zeebe:header key="operation" value="fetch-fashion-order-item"/></zeebe:taskHeaders>
       </bpmn:extensionElements>
       <bpmn:incoming>Flow_Submit_To_Fetch</bpmn:incoming>
       <bpmn:incoming>Flow_Correction_Yes</bpmn:incoming>
@@ -44,7 +44,7 @@
       <bpmn:incoming>Flow_Correction_No</bpmn:incoming>
     </bpmn:endEvent>
     <bpmn:serviceTask id="Task_CheckMinimumInfo" name="Valider les informations minimales">
-  <bpmn:extensionElements><zeebe:taskDefinition type="validate-return-data" retries="3"/></bpmn:extensionElements>
+  <bpmn:extensionElements><zeebe:taskDefinition type="shein-agent" retries="3"/><zeebe:taskHeaders><zeebe:header key="operation" value="validate-return-data"/></zeebe:taskHeaders></bpmn:extensionElements>
   <bpmn:incoming>Flow_OrderFound_Yes</bpmn:incoming>
   <bpmn:incoming>Flow_AdditionalInfo_To_Check</bpmn:incoming>
   <bpmn:outgoing>Flow_Check_To_InfoComplete</bpmn:outgoing>
@@ -77,15 +77,15 @@
   <bpmn:startEvent id="Start_Evaluate"><bpmn:outgoing>Flow_EvalStart_To_AI</bpmn:outgoing></bpmn:startEvent>
   <bpmn:serviceTask id="Task_AIAnalysis" name="Analyser le motif du retour (LLM / OpenRouter)">
     <bpmn:documentation>Classifie le motif: SIZE_FIT, COLOR_MISMATCH, FABRIC_QUALITY, SHAPE_CUT, DEFECTIVE, WRONG_ITEM, NOT_AS_DESCRIBED, OTHER. Produit résumé, sentiment, urgence et aiAvailable.</bpmn:documentation>
-    <bpmn:extensionElements><zeebe:taskDefinition type="classify-fashion-return" retries="2"/></bpmn:extensionElements>
+    <bpmn:extensionElements><zeebe:taskDefinition type="shein-agent" retries="2"/><zeebe:taskHeaders><zeebe:header key="operation" value="classify-fashion-return"/></zeebe:taskHeaders></bpmn:extensionElements>
     <bpmn:incoming>Flow_EvalStart_To_AI</bpmn:incoming><bpmn:outgoing>Flow_AI_To_Available</bpmn:outgoing>
   </bpmn:serviceTask>
   <bpmn:exclusiveGateway id="Gateway_AIAvailable" name="IA disponible ?" default="Flow_AI_No">
     <bpmn:incoming>Flow_AI_To_Available</bpmn:incoming><bpmn:outgoing>Flow_AI_Yes</bpmn:outgoing><bpmn:outgoing>Flow_AI_No</bpmn:outgoing>
   </bpmn:exclusiveGateway>
-  <bpmn:serviceTask id="Task_RetrievePolicyRAG" name="Rechercher la politique via RAG (PostgreSQL / pgvector)">
-    <bpmn:documentation>Recherche sémantique dans le corpus: politique de retour publique, FAQ, règles vêtements, guides tailles et fiches produits. Retourne policyChunks, sourceIds, similarityScores, ragContextFound.</bpmn:documentation>
-    <bpmn:extensionElements><zeebe:taskDefinition type="retrieve-return-policy-rag" retries="3"/></bpmn:extensionElements>
+  <bpmn:serviceTask id="Task_RetrievePolicyRAG" name="Rechercher les politiques via le RAG de shein-agent">
+    <bpmn:documentation>shein-agent effectue une recherche sémantique dans les sources intégrées: politique de retour publique, FAQ, règles vêtements, guides tailles et fiches produits. Retourne policyChunks, sourceIds, similarityScores, ragContextFound.</bpmn:documentation>
+    <bpmn:extensionElements><zeebe:taskDefinition type="shein-agent" retries="3"/><zeebe:taskHeaders><zeebe:header key="operation" value="retrieve-return-policy-rag"/></zeebe:taskHeaders></bpmn:extensionElements>
     <bpmn:incoming>Flow_AI_Yes</bpmn:incoming><bpmn:outgoing>Flow_RAG_To_Context</bpmn:outgoing>
   </bpmn:serviceTask>
   <bpmn:exclusiveGateway id="Gateway_RAGContext" name="Contexte RAG suffisant ?" default="Flow_RAG_No">
@@ -93,7 +93,7 @@
   </bpmn:exclusiveGateway>
   <bpmn:serviceTask id="Task_ExtractFacts" name="Extraire les faits + preuves citées">
     <bpmn:documentation>Sortie structurée: catégorie, jours depuis réception, état, porté/lavé/modifié, étiquettes, défaut, preuves et références de politique utilisées. Le LLM n'accorde pas le retour.</bpmn:documentation>
-    <bpmn:extensionElements><zeebe:taskDefinition type="extract-grounded-return-facts" retries="2"/></bpmn:extensionElements>
+    <bpmn:extensionElements><zeebe:taskDefinition type="shein-agent" retries="2"/><zeebe:taskHeaders><zeebe:header key="operation" value="extract-grounded-return-facts"/></zeebe:taskHeaders></bpmn:extensionElements>
     <bpmn:incoming>Flow_RAG_Yes</bpmn:incoming><bpmn:outgoing>Flow_Facts_To_Eligibility</bpmn:outgoing>
   </bpmn:serviceTask>
   <bpmn:userTask id="Task_ManualAnalysis" name="Analyse manuelle des faits / règles">
@@ -106,7 +106,7 @@
   </bpmn:userTask>
   <bpmn:serviceTask id="Task_EvaluateEligibility" name="Évaluer l'éligibilité (règles déterministes / DMN)">
     <bpmn:documentation>Décision déterministe à partir des faits structurés et des règles sourcées. Base académique alignée sur la politique publique SHEIN Maroc: la plupart des articles neufs sont retournables sous conditions dans les 30 jours suivant la réception; les vêtements doivent notamment être neufs, non portés, non lavés, non endommagés, non modifiés, avec les étiquettes d'origine attachées; certaines catégories (par ex. bodys, maillots de bain, lingerie, sous-vêtements) sont non retournables; un article reçu défectueux ou endommagé suit le chemin SAV dédié si le client contacte le service client dans le délai public indiqué. Le LLM ne prend jamais seul la décision finale.</bpmn:documentation>
-    <bpmn:extensionElements><zeebe:taskDefinition type="evaluate-return-eligibility" retries="3"/></bpmn:extensionElements>
+    <bpmn:extensionElements><zeebe:taskDefinition type="shein-agent" retries="3"/><zeebe:taskHeaders><zeebe:header key="operation" value="evaluate-return-eligibility"/></zeebe:taskHeaders></bpmn:extensionElements>
     <bpmn:incoming>Flow_Facts_To_Eligibility</bpmn:incoming><bpmn:incoming>Flow_Manual_To_Eligibility</bpmn:incoming><bpmn:outgoing>Flow_Eligibility_To_EvalEnd</bpmn:outgoing>
   </bpmn:serviceTask>
   <bpmn:endEvent id="End_Evaluate"><bpmn:incoming>Flow_Eligibility_To_EvalEnd</bpmn:incoming></bpmn:endEvent>
@@ -128,14 +128,14 @@
     </bpmn:exclusiveGateway>
     <bpmn:serviceTask id="Task_GenerateRefusal" name="Générer un refus expliqué et sourcé">
       <bpmn:extensionElements>
-        <zeebe:taskDefinition type="generate-grounded-refusal-response" retries="2"/>
+        <zeebe:taskDefinition type="shein-agent" retries="2"/><zeebe:taskHeaders><zeebe:header key="operation" value="generate-grounded-refusal-response"/></zeebe:taskHeaders>
       </bpmn:extensionElements>
       <bpmn:incoming>Flow_Eligible_No</bpmn:incoming>
       <bpmn:outgoing>Flow_Refusal_To_Notify</bpmn:outgoing>
     </bpmn:serviceTask>
     <bpmn:serviceTask id="Task_NotifyRefusal" name="Notifier le client du refus">
       <bpmn:extensionElements>
-        <zeebe:taskDefinition type="notify-client" retries="3"/>
+        <zeebe:taskDefinition type="shein-agent" retries="3"/><zeebe:taskHeaders><zeebe:header key="operation" value="notify-client"/></zeebe:taskHeaders>
       </bpmn:extensionElements>
       <bpmn:incoming>Flow_Refusal_To_Notify</bpmn:incoming>
       <bpmn:outgoing>Flow_NotifyRefusal_To_End</bpmn:outgoing>
@@ -170,7 +170,7 @@
     <bpmn:incoming>Flow_Validate_To_ReturnRequired</bpmn:incoming><bpmn:outgoing>Flow_ReturnRequired_Yes</bpmn:outgoing><bpmn:outgoing>Flow_ReturnRequired_No</bpmn:outgoing>
   </bpmn:exclusiveGateway>
   <bpmn:serviceTask id="Task_SendReturnInstructions" name="Envoyer les instructions de retour">
-    <bpmn:extensionElements><zeebe:taskDefinition type="send-return-instructions" retries="3"/></bpmn:extensionElements>
+    <bpmn:extensionElements><zeebe:taskDefinition type="shein-agent" retries="3"/><zeebe:taskHeaders><zeebe:header key="operation" value="send-return-instructions"/></zeebe:taskHeaders></bpmn:extensionElements>
     <bpmn:incoming>Flow_ReturnRequired_Yes</bpmn:incoming><bpmn:outgoing>Flow_Instructions_To_Receipt</bpmn:outgoing>
   </bpmn:serviceTask>
   <bpmn:userTask id="Task_ConfirmReceipt" name="Confirmer la réception du vêtement">
@@ -234,21 +234,21 @@
       </bpmn:exclusiveGateway>
       <bpmn:serviceTask id="Task_ExecuteRefund" name="Rembourser sur portefeuille SHEIN">
         <bpmn:extensionElements>
-          <zeebe:taskDefinition type="refund-shein-wallet" retries="3"/>
+          <zeebe:taskDefinition type="shein-agent" retries="3"/><zeebe:taskHeaders><zeebe:header key="operation" value="refund-shein-wallet"/></zeebe:taskHeaders>
         </bpmn:extensionElements>
         <bpmn:incoming>Flow_Resolution_Refund</bpmn:incoming>
         <bpmn:outgoing>Flow_Refund_To_Merge</bpmn:outgoing>
       </bpmn:serviceTask>
       <bpmn:serviceTask id="Task_ExecuteExchange" name="Rembourser sur moyen de paiement initial">
         <bpmn:extensionElements>
-          <zeebe:taskDefinition type="refund-original-payment" retries="3"/>
+          <zeebe:taskDefinition type="shein-agent" retries="3"/><zeebe:taskHeaders><zeebe:header key="operation" value="refund-original-payment"/></zeebe:taskHeaders>
         </bpmn:extensionElements>
         <bpmn:incoming>Flow_Resolution_Exchange</bpmn:incoming>
         <bpmn:outgoing>Flow_Exchange_To_Merge</bpmn:outgoing>
       </bpmn:serviceTask>
       <bpmn:serviceTask id="Task_ExecuteRepair" name="Remboursement sans retour">
         <bpmn:extensionElements>
-          <zeebe:taskDefinition type="refund-without-return" retries="3"/>
+          <zeebe:taskDefinition type="shein-agent" retries="3"/><zeebe:taskHeaders><zeebe:header key="operation" value="refund-without-return"/></zeebe:taskHeaders>
         </bpmn:extensionElements>
         <bpmn:incoming>Flow_Resolution_Repair</bpmn:incoming>
         <bpmn:outgoing>Flow_Repair_To_Merge</bpmn:outgoing>
@@ -291,14 +291,14 @@
     </bpmn:subProcess>
     <bpmn:serviceTask id="Task_GenerateFinalResponse" name="Générer la réponse finale personnalisée (LLM)">
       <bpmn:extensionElements>
-        <zeebe:taskDefinition type="generate-grounded-final-response" retries="2"/>
+        <zeebe:taskDefinition type="shein-agent" retries="2"/><zeebe:taskHeaders><zeebe:header key="operation" value="generate-grounded-final-response"/></zeebe:taskHeaders>
       </bpmn:extensionElements>
       <bpmn:incoming>Flow_Resolve_To_FinalResponse</bpmn:incoming>
       <bpmn:outgoing>Flow_FinalResponse_To_Notify</bpmn:outgoing>
     </bpmn:serviceTask>
     <bpmn:serviceTask id="Task_NotifyClient" name="Notifier le client">
       <bpmn:extensionElements>
-        <zeebe:taskDefinition type="notify-client" retries="3"/>
+        <zeebe:taskDefinition type="shein-agent" retries="3"/><zeebe:taskHeaders><zeebe:header key="operation" value="notify-client"/></zeebe:taskHeaders>
       </bpmn:extensionElements>
       <bpmn:incoming>Flow_FinalResponse_To_Notify</bpmn:incoming>
       <bpmn:outgoing>Flow_Notify_To_Close</bpmn:outgoing>
@@ -314,7 +314,7 @@
     <bpmn:endEvent id="End_Completed" name="Dossier terminé">
       <bpmn:incoming>Flow_Close_To_End</bpmn:incoming>
     </bpmn:endEvent>
-    <bpmn:association id="Association_RAG_VectorStore" sourceRef="Task_RetrievePolicyRAG" targetRef="DataStoreRef_PolicyVector" associationDirection="None"/>
+    <bpmn:association id="Association_RAG_SheinAgent" sourceRef="Task_RetrievePolicyRAG" targetRef="TextAnnotation_SheinAgent" associationDirection="None"/>
     <bpmn:sequenceFlow id="Flow_Start_To_Submit" sourceRef="StartEvent_ReturnRequest" targetRef="Task_SubmitReturn"/>
     <bpmn:sequenceFlow id="Flow_Submit_To_Fetch" sourceRef="Task_SubmitReturn" targetRef="Task_FetchOrder"/>
     <bpmn:sequenceFlow id="Flow_Fetch_To_OrderFound" sourceRef="Task_FetchOrder" targetRef="Gateway_OrderFound"/>
@@ -347,7 +347,6 @@
     <bpmn:sequenceFlow id="Flow_Notify_To_Close" sourceRef="Task_NotifyClient" targetRef="Task_CloseCase"/>
     <bpmn:sequenceFlow id="Flow_Close_To_End" sourceRef="Task_CloseCase" targetRef="End_Completed"/>
   </bpmn:process>
-  <bpmn:dataStore id="DataStore_PolicyVector" name="PostgreSQL + pgvector - Corpus politiques / FAQ / tailles / produits" isUnlimited="true"/>
   <bpmndi:BPMNDiagram id="BPMNDiagram_ReturnFlowAI">
     <bpmndi:BPMNPlane id="BPMNPlane_ReturnFlowAI" bpmnElement="returnflow-ai-shein-rag">
       <bpmndi:BPMNShape id="Shape_Start" bpmnElement="StartEvent_ReturnRequest">
@@ -652,12 +651,12 @@
         <di:waypoint x="1565" y="450"/><di:waypoint x="1810" y="450"/><di:waypoint x="1810" y="390"/></bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Edge_Eligibility_End" bpmnElement="Flow_Eligibility_To_EvalEnd">
         <di:waypoint x="1860" y="337"/><di:waypoint x="1880" y="340"/></bpmndi:BPMNEdge>
-      <bpmndi:BPMNShape id="Shape_VectorStore" bpmnElement="DataStoreRef_PolicyVector">
-        <dc:Bounds x="1400" y="70" width="160" height="70"/>
+      <bpmndi:BPMNShape id="Shape_SheinAgent" bpmnElement="TextAnnotation_SheinAgent">
+        <dc:Bounds x="1380" y="65" width="210" height="70"/>
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNEdge id="Edge_RAG_VectorStore" bpmnElement="Association_RAG_VectorStore">
+      <bpmndi:BPMNEdge id="Edge_RAG_SheinAgent" bpmnElement="Association_RAG_SheinAgent">
         <di:waypoint x="1455" y="275"/>
-        <di:waypoint x="1455" y="140"/>
+        <di:waypoint x="1485" y="135"/>
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNShape id="Shape_HandleStart" bpmnElement="Start_Handle">
         <dc:Bounds x="2110" y="302" width="36" height="36"/>
