@@ -23,11 +23,11 @@ Le projet combine :
 
 - **BPMN** : processus manuel de référence AS-IS et processus cible TO-BE sur Camunda 8.10.
 - **Process Mining** : analyse d’event logs simulés avec PM4Py.
-- **Workflow AI** : RAG sur PostgreSQL + pgvector pour retrouver les politiques; LLM via LangChain/OpenRouter pour classifier et extraire les faits; règles déterministes/DMN pour décider.
+- **Workflow AI** : un worker Camunda nommé `shein-agent` exécute les 14 tâches automatisées du BPMN. L’en-tête `operation` distingue leurs traitements : recherche RAG, analyse LLM, évaluation déterministe, notifications et résolutions simulées.
 
 ### Principe directeur
 
-> Camunda orchestre. Le RAG retrouve les sources. Le LLM comprend la demande et extrait des faits. Les règles déterministes évaluent l’éligibilité. L’agent SAV valide la suite.
+> Camunda orchestre. Le worker `shein-agent` exécute les tâches automatisées et reçoit le nom de l’opération dans l’en-tête `operation`. Le LLM analyse et extrait les faits; les règles déterministes évaluent l’éligibilité; l’agent SAV humain valide la suite.
 
 Deux décisions sont distinguées :
 
@@ -88,31 +88,24 @@ La recommandation du LLM ne décide jamais seule de l’éligibilité.
 ```text
 Camunda 8.10
 BPMN · Forms · Tasklist · Operate
-              │
-              │ REST Connector
+              │ jobs, type = `shein-agent`
               ▼
-         API FastAPI
-Validation · Règles · Gestion des erreurs
+       Worker `shein-agent`
+       dispatch via `operation`
               │
-              ├──► PostgreSQL
-              │    Commandes · Articles · Retours
-              │
-              ├──► pgvector
-              │    Politiques · FAQ · Guides · Fiches produit
-              │
-              └──► LangChain → OpenRouter
-                   Classification · Extraction · Réponse
-
-Éligibilité déterministe / DMN
-
-Event logs simulés AS-IS / TO-BE
+     ┌────────┼─────────┐
+     ▼        ▼         ▼
+Commandes   RAG + LLM   Règles/DMN
+et contrôles sources    déterministes
               │
               ▼
-             PM4Py
-Variantes · Performance · Découverte · Conformité
+ Réponses · notifications · résolutions simulées
+
+Tâches humaines : validations SAV, réception et inspection
+Process Mining : journaux TO-BE / AS-IS → PM4Py
 ```
 
-Schéma détaillé prévu : `docs/architecture.png`.
+Dans le BPMN TO-BE, les 14 tâches de service partagent le type de job `shein-agent`. Leur en-tête `operation` indique le traitement attendu. Le worker et ses intégrations restent à implémenter; aucun stockage PostgreSQL/pgvector n’est modélisé.
 
 ---
 
@@ -124,8 +117,7 @@ Schéma détaillé prévu : `docs/architecture.png`.
 | Agent SAV | Valider la proposition après contrôle d’éligibilité et confirmer le traitement après inspection |
 | Agent entrepôt | Confirmer la réception et inspecter le produit |
 | Responsable SAV | Recevoir les escalades |
-| Système | Appliquer les règles, enregistrer les opérations et notifier |
-| Assistant IA | Classifier, résumer, proposer et rédiger avec des sources RAG |
+| `shein-agent` (worker) | Exécuter les 14 tâches automatisées selon l’en-tête `operation` : recherche, RAG, analyse, règles, messages, notifications et résolution simulée |
 
 Pour la démonstration, certaines actions du client et de l’entrepôt sont représentées par des formulaires.
 
@@ -182,13 +174,15 @@ Ces problèmes sont représentés dans les données simulées.
 | 2 | Corriger les références si la commande est introuvable | User Task + XOR Gateway |
 | 3 | Vérifier la complétude et demander un complément si nécessaire | Service Task + User Task + Timer 48 h |
 | 4 | Classifier le motif avec le LLM, puis vérifier sa disponibilité | Service Task + XOR Gateway |
-| 5 | Rechercher la politique avec RAG dans PostgreSQL/pgvector | Service Task + XOR Gateway |
+| 5 | Rechercher les politiques avec le RAG de `shein-agent` | Service Task (`operation=retrieve-return-policy-rag`) + XOR Gateway |
 | 6 | Extraire les faits et les sources, ou effectuer une analyse manuelle | Service Task / User Task |
 | 7 | Évaluer l’éligibilité par règles déterministes/DMN | Service Task + XOR Gateway |
 | 8 | Valider la proposition et le besoin d’un retour physique | User Task + SLA 24 h |
 | 9 | Si requis, recevoir et inspecter le vêtement | User Tasks + contrôle qualité |
 | 10 | Confirmer le mode de remboursement ou traiter une exception | User Task + sous-processus simulé |
 | 11 | Générer la réponse, notifier le client et clôturer | Service Tasks + User Task |
+
+Les 14 Service Tasks du BPMN sont routées vers le même worker `shein-agent`; l’en-tête `operation` sélectionne l’action. Les User Tasks restent assignées aux personnes concernées et conservent leurs formulaires Camunda.
 
 ### Vue simplifiée
 
@@ -337,9 +331,9 @@ Cette sortie est illustrative et doit correspondre aux schémas réellement impl
 
 ### Garde-fous
 
-- Validation des sorties avec Pydantic.
+- Prévoir la validation des sorties structurées avec Pydantic lors de l’implémentation du worker.
 - Séparation entre `ai_suggestion` et `agent_decision`.
-- Le LLM ne décide pas l’éligibilité et ne déclenche aucun remboursement.
+- Le LLM de `shein-agent` ne décide pas l’éligibilité; les règles/DMN évaluent le dossier et les validations SAV restent humaines. Les opérations de résolution sont simulées.
 - Aucun secret transmis au modèle.
 - Données de démonstration fictives.
 - Fallback manuel en cas d’erreur.
@@ -370,7 +364,7 @@ Une pièce justificative peut être représentée par une référence fictive. L
 
 ---
 
-## 12. Modèle de données
+## 12. Variables métier du processus
 
 ### Commandes et articles
 
@@ -430,191 +424,86 @@ Chaque retour identifie une ligne de commande et une quantité précise.
 
 ```text
 ReturnFlow-AI/
+├── backend/
+│   └── .gitkeep                 # emplacement réservé au worker `shein-agent`
 ├── camunda/
 │   ├── returnflow_as_is.bpmn
 │   ├── returnflow_to_be.bpmn
-│   ├── form-demande-retour.form
-│   ├── form-correction-references.form
-│   ├── form-complement-information.form
-│   ├── form-analyse-manuelle.form
-│   ├── form-validation-sav.form
-│   ├── form-escalade-sav.form
-│   ├── form-reception-produit.form
-│   ├── form-inspection-produit.form
-│   ├── form-reanalyse-apres-inspection.form
-│   ├── form-resolution-sav.form
-│   ├── form-resolution-exception.form
-│   ├── form-cloture-dossier.form
-│   └── regles-retour.dmn
-├── backend/
-│   ├── app.py
-│   ├── ai_service.py
-│   ├── schemas.py
-│   ├── database.py
-│   ├── seed_database.py
-│   ├── policies.json
-│   ├── .env.example
-│   └── tests/
-├── process_mining/
-│   ├── generate_log.py
-│   ├── process_mining.py
-│   ├── event_log_as_is.csv
-│   ├── event_log_to_be.csv
-│   └── outputs/
+│   └── *.form                   # formulaires du processus TO-BE
 ├── docs/
-│   ├── cadrage_metier.md
-│   ├── architecture.png
-│   ├── demo_scenarios.md
-│   ├── captures/
-│   └── presentation.pdf
+│   └── cadrage_metier.md
+├── process_mining/
+│   ├── .gitkeep
+│   └── outputs/.gitkeep
+├── src/returnflow_ai/
+│   └── __init__.py
 ├── .gitignore
-├── requirements.txt
+├── .python-version
+├── pyproject.toml
 └── README.md
 ```
 
-La configuration PostgreSQL/pgvector et le fichier `.env` sont gérés localement; aucun secret ne doit être versionné.
+Le dépôt contient le BPMN et les formulaires; le worker `shein-agent` est planifié mais pas encore implémenté. Le processus ne dépend pas d’une base PostgreSQL/pgvector.
 
 ---
 
 ## 14. Prérequis
 
-- Python 3.11.
-- Git.
-- Camunda 8 avec un environnement local fonctionnel.
-- Camunda Desktop Modeler compatible avec l’environnement retenu.
-- Une clé API OpenRouter.
+- Git et Python selon la version indiquée dans pyproject.toml.
+- Camunda 8.10 et Camunda Desktop Modeler compatible.
+- Une clé API OpenRouter pour les opérations LLM.
+- Un client Camunda/Zeebe à sélectionner pour l’implémentation du worker.
 
-Les versions exactes des outils et bibliothèques sont à fixer après validation de l’intégration.
-
-### Dépendances principales
-
-```text
-fastapi
-uvicorn
-pydantic
-python-dotenv
-langchain
-langchain-openrouter
-requests
-pm4py
-pandas
-matplotlib
-```
+Les dépendances du worker ne sont pas encore définies dans le dépôt.
 
 ---
 
-## 15. Installation
+## 15. Configuration prévue
 
-Les commandes suivantes supposent que les fichiers correspondants ont été implémentés.
-
-### Créer l’environnement Python
-
-Depuis la racine du dépôt :
-
-```powershell
-python -m venv .venv
-.\.venv\Scripts\Activate.ps1
-pip install -r requirements.txt
-```
-
-### Configurer les secrets
-
-```powershell
-Copy-Item backend/.env.example backend/.env
-```
-
-Modifier `backend/.env` :
+Configurer la clé OpenRouter dans l’environnement d’exécution du worker, par exemple :
 
 ```env
 OPENROUTER_API_KEY=votre_cle_api
 OPENROUTER_MODEL=modele_a_configurer
 ```
 
-Le backend doit charger explicitement ce fichier depuis son emplacement.
-
-### Initialiser les données
-
-```powershell
-cd backend
-python seed_database.py
-```
-
-Le script doit créer la base et les commandes fictives nécessaires à la démonstration.
+Ne pas versionner de clé réelle. Le BPMN ne requiert ni configuration PostgreSQL ni initialisation de base.
 
 ---
 
-## 16. Lancement
+## 16. Déploiement et exécution
 
-### 1. Démarrer Camunda
+1. Ouvrir `camunda/returnflow_to_be.bpmn` dans Camunda Modeler.
+2. Vérifier les formulaires et expressions, puis déployer le BPMN et les formulaires sur Camunda.
+3. Implémenter et démarrer un worker qui s’abonne au type de job `shein-agent`.
+4. Dans ce worker, lire l’en-tête `operation`, exécuter le traitement correspondant et compléter le job avec les variables attendues.
+5. Démarrer une instance, remplir le formulaire de demande, puis suivre les validations humaines dans Tasklist et l’exécution dans Operate.
 
-Démarrer l’environnement Camunda local selon la distribution et la version installées.
-
-Les URL, identifiants et paramètres de connexion sont à documenter après validation de l’environnement.
-
-### 2. Démarrer FastAPI
-
-Depuis le dossier `backend` :
-
-```powershell
-uvicorn app:app --reload --host 127.0.0.1 --port 8000
-```
-
-- API : `http://localhost:8000`
-- Swagger : `http://localhost:8000/docs`
-
-### 3. Configurer les REST Connectors
-
-Configurer l’adresse du backend dans les tâches concernées.
-
-> Si Camunda ou les Connectors s’exécutent dans un conteneur, `localhost` désigne ce conteneur, pas nécessairement la machine hôte. L’adresse du backend doit être adaptée à l’environnement.
-
-### 4. Déployer le processus
-
-- Ouvrir `camunda/returnflow_to_be.bpmn`.
-- Vérifier les expressions et mappings.
-- Déployer les formulaires.
-- Déployer le BPMN sur l’instance locale.
-
-### 5. Démarrer un dossier
-
-- Démarrer une instance.
-- Compléter le formulaire de demande.
-- Effectuer les validations dans Tasklist.
-- Suivre les variables et l’exécution dans Operate.
+**État actuel :** le BPMN déclare ce routage, mais le worker n’est pas encore présent; les Service Tasks ne peuvent donc pas être exécutées avant son implémentation.
 
 ---
 
-## 17. Contrat API cible
+## 17. Contrat du worker `shein-agent`
 
-Les routes suivantes décrivent l’API prévue.
+Chaque Service Task crée un job de type `shein-agent`. L’en-tête Camunda `operation` permet au worker unique de distinguer les traitements :
 
-| Méthode | Route | Rôle |
-|---------|-------|------|
-| GET | `/health` | Vérifier la disponibilité |
-| GET | `/orders/{order_id}` | Récupérer une commande et ses articles |
-| POST | `/eligibility` | Appliquer les règles métier |
-| POST | `/ai/analyze` | Produire l’analyse structurée |
-| POST | `/ai/generate-response` | Rédiger un message |
-| POST | `/returns` | Créer un dossier RMA |
-| GET | `/returns/{return_id}` | Consulter le dossier |
-| POST | `/returns/{return_id}/authorization` | Enregistrer l’autorisation ou le refus |
-| POST | `/returns/{return_id}/receive` | Enregistrer la réception |
-| POST | `/returns/{return_id}/inspection` | Enregistrer l’inspection |
-| POST | `/returns/{return_id}/resolution` | Enregistrer la décision finale |
-| POST | `/returns/{return_id}/execute-resolution` | Exécuter la résolution simulée |
-| POST | `/returns/{return_id}/notify` | Simuler la notification |
-| POST | `/returns/{return_id}/close` | Clôturer le dossier |
+| Valeur de `operation` | Traitement |
+|---------------------|------------|
+| `fetch-fashion-order-item` | Récupérer la commande, l’article et la fiche produit |
+| `validate-return-data` | Vérifier les informations minimales |
+| `classify-fashion-return` | Classifier le motif du retour |
+| `retrieve-return-policy-rag` | Rechercher les sources de politique avec le RAG |
+| `extract-grounded-return-facts` | Extraire les faits et preuves sourcées |
+| `evaluate-return-eligibility` | Appliquer les règles déterministes/DMN |
+| `generate-grounded-refusal-response` | Rédiger un refus expliqué et sourcé |
+| `notify-client` | Simuler une notification client |
+| `send-return-instructions` | Générer/envoyer les instructions de retour |
+| `refund-shein-wallet` | Enregistrer le remboursement simulé sur portefeuille |
+| `refund-original-payment` | Enregistrer le remboursement simulé sur le moyen initial |
+| `refund-without-return` | Enregistrer la résolution simulée sans retour |
+| `generate-grounded-final-response` | Rédiger la réponse finale sourcée |
 
-### Gestion des erreurs
-
-- Validation des entrées avec Pydantic.
-- Réponse métier exploitable pour une commande introuvable.
-- Distinction entre erreur technique et décision métier.
-- Fallback si le LLM est indisponible.
-- Prévention des doublons lors de la création ou de l’exécution d’une résolution.
-- Journalisation sans secrets.
-
-Les réponses doivent être mappées vers les variables du processus Camunda.
+Les entrées et sorties précises de chaque opération doivent être définies avec les variables du BPMN avant l’implémentation. Les User Tasks et leurs formulaires restent traités par les utilisateurs humains.
 
 ---
 
@@ -639,7 +528,7 @@ Deux fichiers sont prévus :
 | `activity` | Nom de l’activité |
 | `start_timestamp` | Début de l’activité |
 | `end_timestamp` | Fin de l’activité |
-| `resource` | Acteur ou système |
+| `resource` | Acteur, worker ou système |
 | `result` | Résultat de l’activité |
 | `process_version` | `AS_IS` ou `TO_BE` |
 
@@ -647,7 +536,7 @@ Exemple :
 
 ```csv
 case_id,activity,start_timestamp,end_timestamp,resource,result,process_version
-RMA-001,Verifier eligibilite,2026-11-01T10:00:00,2026-11-01T10:00:02,System,eligible,TO_BE
+RMA-001,Verifier eligibilite,2026-11-01T10:00:00,2026-11-01T10:00:02,shein-agent,eligible,TO_BE
 RMA-001,Autoriser retour,2026-11-01T10:30:00,2026-11-01T10:35:00,Agent01,authorized,TO_BE
 ```
 
@@ -741,51 +630,36 @@ Détails prévus : `docs/demo_scenarios.md`.
 
 ### Message de conclusion
 
-> BPMN orchestre, les règles encadrent, l’IA assiste, l’humain décide et le Process Mining mesure.
+> Camunda orchestre, `shein-agent` exécute les tâches automatisées, les règles encadrent l’éligibilité, l’agent SAV humain valide les décisions métier et le Process Mining mesure.
 
 ---
 
 ## 22. Plan de réalisation
 
-### Phase 1 — Socle
+### Phase 1 — Modèle et contrat du worker
 
-- [ ] Créer le dépôt.
-- [ ] Définir les règles pédagogiques.
-- [ ] Modéliser l’AS-IS.
-- [ ] Modéliser le TO-BE.
-- [ ] Créer les commandes fictives.
-- [ ] Implémenter FastAPI.
+- [x] Modéliser l’AS-IS et le TO-BE.
+- [x] Créer les formulaires humains du TO-BE.
+- [x] Router les tâches automatisées vers `shein-agent`.
+- [ ] Définir les variables d’entrée/sortie par valeur de l’en-tête `operation`.
+- [ ] Choisir le client Camunda/Zeebe et la configuration d’exécution.
 
-### Phase 2 — Traitement de la demande
+### Phase 2 — Implémentation de `shein-agent`
 
-- [ ] Créer le formulaire de demande.
-- [ ] Récupérer la commande et l’article.
-- [ ] Vérifier les informations.
-- [ ] Ajouter la boucle de complément.
-- [ ] Implémenter l’éligibilité.
-- [ ] Intégrer l’analyse IA.
-- [ ] Ajouter le fallback.
-- [ ] Créer la validation SAV.
+- [ ] Implémenter le worker abonné au type de job `shein-agent`.
+- [ ] Ajouter la récupération des données de commande et les contrôles.
+- [ ] Intégrer RAG et LLM avec sources et sorties structurées.
+- [ ] Implémenter les règles déterministes/DMN.
+- [ ] Ajouter réponses, notifications et résolutions simulées.
+- [ ] Gérer indisponibilités, erreurs, reprises et idempotence.
+- [ ] Préserver les validations SAV et les autres User Tasks.
 
-### Phase 3 — Retour et résolution
+### Phase 3 — Process Mining et livraison
 
-- [ ] Créer le dossier RMA.
-- [ ] Générer les instructions.
-- [ ] Ajouter la réception.
-- [ ] Ajouter l’inspection.
-- [ ] Ajouter la décision finale.
-- [ ] Simuler remboursement, échange ou réparation.
-- [ ] Ajouter la notification et la clôture.
-- [ ] Ajouter le timer SLA.
-
-### Phase 4 — Analyse et livraison
-
-- [ ] Générer les logs AS-IS et TO-BE.
+- [ ] Générer les journaux AS-IS et TO-BE.
 - [ ] Produire les analyses PM4Py.
-- [ ] Tester les scénarios.
-- [ ] Ajouter les captures.
-- [ ] Finaliser le README.
-- [ ] Préparer la présentation.
+- [ ] Vérifier les scénarios de démonstration dans Camunda.
+- [ ] Ajouter les captures et finaliser la présentation.
 - [ ] Répéter la démonstration.
 
 ---
@@ -795,16 +669,13 @@ Détails prévus : `docs/demo_scenarios.md`.
 | Membre | Responsabilités principales |
 |--------|-----------------------------|
 | Israe Yaaya | BPMN, formulaires, Process Mining, documentation métier |
-| Mohamed | FastAPI, LLM, PostgreSQL/pgvector, règles et gestion des erreurs |
+| Mohamed | Worker `shein-agent`, intégration LLM/RAG, règles et gestion des erreurs |
 
 ### Travail commun
 
-- Architecture.
-- Contrats API.
-- Intégration Camunda ↔ FastAPI.
-- Variables et mappings.
-- Tests.
-- Scénarios de démonstration.
+- Contrat des variables Camunda et des opérations du worker.
+- Intégration du worker au processus Camunda.
+- Journaux et scénarios de démonstration.
 - Présentation finale.
 
 Chaque membre doit pouvoir expliquer le fonctionnement global du système.
@@ -814,7 +685,7 @@ Chaque membre doit pouvoir expliquer le fonctionnement global du système.
 ## 24. Sécurité et Git
 
 - Ne jamais versionner les secrets.
-- Versionner `.env.example`, sans clé réelle.
+- Si un fichier `.env.example` est ajouté, n’y inclure aucune clé réelle.
 - Utiliser uniquement des données fictives.
 - Ne pas afficher la clé API dans les captures.
 - Tester avant fusion dans `main`.
