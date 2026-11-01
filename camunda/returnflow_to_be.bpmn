@@ -2,10 +2,6 @@
 <bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:zeebe="http://camunda.org/schema/zeebe/1.0" xmlns:modeler="http://camunda.org/schema/modeler/1.0" id="Definitions_ReturnFlowAI" targetNamespace="http://returnflow.ai/bpmn" exporter="Camunda Modeler" exporterVersion="5.52.0" modeler:executionPlatform="Camunda Cloud" modeler:executionPlatformVersion="8.10.0">
   <bpmn:process id="returnflow-ai-shein-rag" name="ReturnFlow AI - Cas académique SHEIN | Retours vêtements + RAG" isExecutable="true">
     <bpmn:documentation>Cas d'étude académique inspiré des politiques publiques de retour SHEIN Maroc. Le processus interne réel de SHEIN n'est pas reproduit. Le worker unique shein-agent traite les tâches automatisées : recherche de commande, contrôles, RAG, analyse assistée par LLM, application des règles déterministes, génération des réponses, notifications et remboursements simulés. Le LLM ne décide jamais seul de l'éligibilité. Les détails techniques du stockage RAG ne sont pas modélisés comme des tâches de processus.</bpmn:documentation>
-    <bpmn:textAnnotation id="TextAnnotation_SheinAgent">
-      <bpmn:text>shein-agent&#10;Worker unique des tâches automatisées</bpmn:text>
-    </bpmn:textAnnotation>
-
     <!-- ========== Réception et vérification de la commande ========== -->
     <bpmn:startEvent id="StartEvent_ReturnRequest" name="Demande de retour reçue">
       <bpmn:outgoing>Flow_Start_To_Submit</bpmn:outgoing>
@@ -459,8 +455,6 @@
       <bpmn:incoming>Flow_Close_To_End</bpmn:incoming>
     </bpmn:endEvent>
 
-    <bpmn:association id="Association_RAG_SheinAgent" associationDirection="None" sourceRef="Task_RetrievePolicyRAG" targetRef="TextAnnotation_SheinAgent" />
-
     <!-- ========== Flux principaux ========== -->
     <bpmn:sequenceFlow id="Flow_Start_To_Submit" sourceRef="StartEvent_ReturnRequest" targetRef="Task_SubmitReturn" />
     <bpmn:sequenceFlow id="Flow_Submit_To_Fetch" sourceRef="Task_SubmitReturn" targetRef="Task_FetchOrder" />
@@ -496,6 +490,10 @@
     <bpmn:sequenceFlow id="Flow_FinalResponse_To_Notify" sourceRef="Task_GenerateFinalResponse" targetRef="Task_NotifyClient" />
     <bpmn:sequenceFlow id="Flow_Notify_To_Close" sourceRef="Task_NotifyClient" targetRef="Task_CloseCase" />
     <bpmn:sequenceFlow id="Flow_Close_To_End" sourceRef="Task_CloseCase" targetRef="End_Completed" />
+    <bpmn:textAnnotation id="TextAnnotation_SheinAgent">
+      <bpmn:text>shein-agent&#10;Worker unique des tâches automatisées</bpmn:text>
+    </bpmn:textAnnotation>
+    <bpmn:association id="Association_RAG_SheinAgent" associationDirection="None" sourceRef="Task_RetrievePolicyRAG" targetRef="TextAnnotation_SheinAgent" />
   </bpmn:process>
 
   <bpmndi:BPMNDiagram id="BPMNDiagram_ReturnFlowAI">

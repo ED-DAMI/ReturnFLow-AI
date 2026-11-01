@@ -74,7 +74,17 @@ GROQ_MODEL=openai/gpt-oss-20b
 
 Le modèle configuré par défaut doit être disponible dans la liste de modèles de votre compte Groq; modifiez `GROQ_MODEL` si nécessaire. Les quotas gratuits conviennent aux essais et démonstrations, mais ne constituent pas une capacité de production garantie. Garder la clé uniquement dans `.env` et ne jamais la committer. Les détails sont dans la [documentation de compatibilité OpenAI Groq](https://console.groq.com/docs/openai), la [liste des modèles](https://console.groq.com/docs/models) et les [limites de débit](https://console.groq.com/docs/rate-limits).
 
-Pour Camunda, renseigner `CAMUNDA_REST_URL` pour une installation locale. Pour Camunda SaaS, renseigner `CAMUNDA_REGION`, `CAMUNDA_CLUSTER_ID`, `CAMUNDA_CLIENT_ID`, `CAMUNDA_CLIENT_SECRET` et l’audience fournie avec les identifiants API. Ces paramètres restent dans le `.env` ignoré par Git. Le worker utilise `POST /v2/jobs/activation`, puis les routes de complétion ou d’échec de job de l’API REST Camunda.
+Pour Camunda, renseigner `CAMUNDA_REST_URL` pour une installation locale. Avec Camunda 8 Run, l’URL locale est `http://localhost:8080/v2`; l’installation de développement utilise `demo` / `demo` par défaut, à configurer dans `CAMUNDA_BASIC_USERNAME` et `CAMUNDA_BASIC_PASSWORD`. Pour Camunda SaaS, renseigner `CAMUNDA_REGION`, `CAMUNDA_CLUSTER_ID`, `CAMUNDA_CLIENT_ID`, `CAMUNDA_CLIENT_SECRET` et l’audience fournie avec les identifiants API. Ces paramètres restent dans le `.env` ignoré par Git. Le worker utilise `POST /v2/jobs/activation`, puis les routes de complétion ou d’échec de job de l’API REST Camunda.
+
+### Camunda Modeler et Camunda 8 Run en local
+
+Ouvrir `camunda/returnflow_to_be.bpmn` dans Camunda Modeler. Depuis le dossier d’installation de Camunda 8 Run, démarrer le moteur local avec :
+
+~~~powershell
+.\c8run.exe start --no-browser --disable-connectors
+~~~
+
+Les connecteurs Camunda intégrés sont désactivés ici car le worker Python traite les jobs `shein-agent`. Déployer le BPMN TO-BE et les formulaires depuis Modeler après une modification, puis lancer le worker. Pour arrêter le moteur, exécuter `.\c8run.exe stop` depuis son dossier d’installation.
 
 Le projet requiert Python 3.14 ou une version ultérieure. Si le port local 5432 est déjà utilisé, choisir `DB_PORT=5433` dans `.env`; cette valeur sert au port publié par Docker Compose et à la connexion de l’API.
 
@@ -86,6 +96,7 @@ if (-not (Test-Path .env)) { Copy-Item .env.example .env }
 docker compose up -d postgres
 uv sync
 uv run python embeddings/ingest_rag_documents.py
+# Camunda 8 Run doit être démarré et le BPMN TO-BE déployé avant ce terminal
 # Terminal 1: API de démonstration facultative
 uv run python backend/shein-agent.py
 # Terminal 2: worker du BPMN TO-BE

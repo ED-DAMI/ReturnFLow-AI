@@ -9,7 +9,7 @@ from returnflow_core import (
     EMBEDDING_MODEL,
     GROQ_MODEL,
     ReturnState,
-    return_agent_graph,
+    run_return_agent,
 )
 
 
@@ -42,7 +42,7 @@ def process_return_task(data: ReturnRequest) -> dict:
             "response": None,
             "needs_human_review": False,
         }
-        final_state = return_agent_graph.invoke(initial_state)
+        final_state = run_return_agent(initial_state)
         return {
             "status": "success",
             "order_id": data.order_id,

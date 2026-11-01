@@ -16,12 +16,7 @@ os.environ.setdefault("MKL_NUM_THREADS", "1")
 os.environ.setdefault("OPENBLAS_NUM_THREADS", "1")
 os.environ.setdefault("TOKENIZERS_PARALLELISM", "false")
 
-import psycopg2
 from dotenv import load_dotenv
-from langchain_core.messages import HumanMessage, SystemMessage
-from langchain_openai import ChatOpenAI
-from langgraph.graph import END, START, StateGraph
-from pgvector.psycopg2 import register_vector
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
@@ -63,11 +58,13 @@ class ReturnState(TypedDict):
     needs_human_review: bool
 
 
-def create_llm() -> ChatOpenAI:
+def create_llm() -> Any:
     """Create a Groq chat client through its OpenAI-compatible endpoint."""
     api_key = os.getenv("GROQ_API_KEY")
     if not api_key:
         raise RuntimeError("GROQ_API_KEY is not configured.")
+    from langchain_openai import ChatOpenAI
+
     return ChatOpenAI(
         model=GROQ_MODEL,
         api_key=api_key,
@@ -79,6 +76,9 @@ def create_llm() -> ChatOpenAI:
 def retrieve_policy(client_query: str) -> tuple[str, list[dict], list[float]]:
     """Retrieve policy passages using local E5 embeddings and pgvector."""
     query_vector = get_embeddings_model().embed_query(f"query: {client_query}")
+    import psycopg2
+    from pgvector.psycopg2 import register_vector
+
     db_settings = {
         "DB_HOST": os.getenv("DB_HOST"),
         "DB_PORT": os.getenv("DB_PORT"),
@@ -159,19 +159,31 @@ def generate_response_node(state: ReturnState) -> dict:
         "Si les extraits ne suffisent pas, indique-le clairement et demande une vérification humaine.\n\n"
         f"Extraits récupérés :\n{rules}"
     )
+    from langchain_core.messages import HumanMessage, SystemMessage
+
     response = create_llm().invoke(
         [SystemMessage(content=system_prompt), HumanMessage(content=state["client_query"])]
     )
     return {"response": str(response.content), "needs_human_review": False}
 
 
-workflow = StateGraph(ReturnState)
-workflow.add_node("retrieve_rules", retrieve_rules_node)
-workflow.add_node("generate_response", generate_response_node)
-workflow.add_edge(START, "retrieve_rules")
-workflow.add_edge("retrieve_rules", "generate_response")
-workflow.add_edge("generate_response", END)
-return_agent_graph = workflow.compile()
+_return_agent_graph: Any = None
+
+
+def run_return_agent(initial_state: ReturnState) -> ReturnState:
+    """Build the heavier LangGraph pipeline only when an RAG request arrives."""
+    global _return_agent_graph
+    if _return_agent_graph is None:
+        from langgraph.graph import END, START, StateGraph
+
+        workflow = StateGraph(ReturnState)
+        workflow.add_node("retrieve_rules", retrieve_rules_node)
+        workflow.add_node("generate_response", generate_response_node)
+        workflow.add_edge(START, "retrieve_rules")
+        workflow.add_edge("retrieve_rules", "generate_response")
+        workflow.add_edge("generate_response", END)
+        _return_agent_graph = workflow.compile()
+    return _return_agent_graph.invoke(initial_state)
 
 
 def _text(value: object) -> str:
@@ -245,6 +257,8 @@ def _json_object(raw: str) -> dict:
 
 
 def _llm_json(system_prompt: str, user_prompt: str) -> dict:
+    from langchain_core.messages import HumanMessage, SystemMessage
+
     response = create_llm().invoke(
         [SystemMessage(content=system_prompt), HumanMessage(content=user_prompt)]
     )
