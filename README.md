@@ -62,29 +62,30 @@ Un worker Camunda/Zeebe devra consommer le type `shein-agent`, traiter l’opér
 
 ## 3. Prototype RAG et configuration
 
-Le prototype [backend/shein-agent.py](backend/shein-agent.py) expose une API FastAPI qui récupère des extraits depuis PostgreSQL avec pgvector puis génère une réponse avec LangGraph et `ChatOpenAI`. PostgreSQL/pgvector est un détail d’implémentation, pas un acteur ni une tâche du BPMN. [docker-compose.yaml](docker-compose.yaml) démarre uniquement PostgreSQL avec l’extension pgvector; l’API et Zeebe ne sont pas inclus.
+Le prototype [backend/shein-agent.py](backend/shein-agent.py) expose une API FastAPI qui récupère les extraits pertinents dans PostgreSQL/pgvector, puis génère une réponse avec LangGraph et le chat Groq via l’API compatible OpenAI. Les embeddings sont calculés localement avec `intfloat/multilingual-e5-small`; ils ne passent pas par Groq et ne nécessitent pas de clé d’embeddings. L’ingestion de `rag_documents/manifest.csv` est réalisée par [embeddings/ingest_rag_documents.py](embeddings/ingest_rag_documents.py). PostgreSQL/pgvector et le RAG restent des détails d’implémentation, pas des acteurs ni des tâches BPMN. [docker-compose.yaml](docker-compose.yaml) démarre uniquement PostgreSQL; l’API et Zeebe ne sont pas inclus.
 
-Copier `.env.example` vers `.env`, définir un mot de passe local de base de données et configurer le fournisseur LLM compatible avec l’API OpenAI :
+Créer `.env` depuis `.env.example`, choisir un mot de passe local de base de données et renseigner une clé Groq obtenue dans votre compte :
 
 ~~~dotenv
-LLM_API_KEY=
-LLM_BASE_URL=
-LLM_MODEL=
+GROQ_API_KEY=
+GROQ_BASE_URL=https://api.groq.com/openai/v1
+GROQ_MODEL=openai/gpt-oss-20b
 ~~~
 
-Ces variables configurent directement une clé et une URL de fournisseur compatible; le dépôt ne fixe aucun fournisseur par défaut. Ne jamais ajouter de vraie clé au dépôt. Sans ces paramètres, la génération LLM renvoie une erreur de configuration explicite.
+Le modèle configuré par défaut doit être disponible dans la liste de modèles de votre compte Groq; modifiez `GROQ_MODEL` si nécessaire. Les quotas gratuits conviennent aux essais et démonstrations, mais ne constituent pas une capacité de production garantie. Garder la clé uniquement dans `.env` et ne jamais la committer. Les détails sont dans la [documentation de compatibilité OpenAI Groq](https://console.groq.com/docs/openai), la [liste des modèles](https://console.groq.com/docs/models) et les [limites de débit](https://console.groq.com/docs/rate-limits).
 
 Pour lancer les composants actuellement présents, depuis la racine du dépôt :
 
 ~~~powershell
 if (-not (Test-Path .env)) { Copy-Item .env.example .env }
-# Renseigner DB_PASSWORD et les variables LLM dans .env
+# Renseigner DB_PASSWORD et GROQ_API_KEY dans .env; vérifier GROQ_MODEL dans le compte Groq
 docker compose up -d postgres
 uv sync
+uv run python embeddings/ingest_rag_documents.py
 uv run python backend/shein-agent.py
 ~~~
 
-L’API écoute sur `http://localhost:8000`; sa route de démonstration est `POST /process-return`. Elle ne consomme pas les jobs Zeebe. Le schéma vectoriel et le chargement des documents doivent être initialisés séparément avant les requêtes sur un corpus RAG.
+Lors de la première ingestion, Sentence Transformers télécharge le modèle d’embeddings. L’indexeur crée la table pgvector si nécessaire et indexe les PDF signalés dans le manifeste; relancez-le après une mise à jour du corpus. L’API écoute sur `http://localhost:8000`; sa route de démonstration est `POST /process-return`. Elle renvoie les sources et pages retenues et ne consomme pas les jobs Zeebe. Les détails de l’indexation sont dans [embeddings/README.md](embeddings/README.md).
 
 ## 4. Process Mining
 
@@ -104,7 +105,7 @@ Le schéma est documenté dans [event_log_schema.csv](logs/04_process_mining/eve
 - `camunda/` — BPMN AS-IS/TO-BE et formulaires Camunda.
 - `backend/` — prototype API RAG, pas encore le worker Zeebe.
 - `rag_documents/` — corpus documentaire pour cadrer les règles métier.
-- `embeddings/` — artefacts d’embeddings du prototype.
+- `embeddings/` — indexeur du corpus RAG et notes sur les embeddings locaux.
 - `logs/` — schéma, génération, protocole et provenance.
 - `process_mining/outputs/` — rapports produits par le script d’analyse.
 - `docs/cadrage_metier.md` — périmètre et décisions de modélisation.

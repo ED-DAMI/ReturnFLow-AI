@@ -35,7 +35,7 @@ La résolution intervient après la validation et l’inspection éventuelle. El
 | Entrepôt | Enregistrer la réception et inspecter l’article retourné. |
 | Responsable SAV | Traiter l’escalade créée après le délai de validation de 24 heures. |
 
-PostgreSQL/pgvector est utilisé par le prototype RAG pour stocker les embeddings. Ce détail d’implémentation n’est ni une tâche ni un acteur BPMN.
+Le prototype RAG utilise `intfloat/multilingual-e5-small` pour calculer localement les embeddings multilingues des règles et questions; PostgreSQL/pgvector stocke les passages et leurs vecteurs. L’API utilise le chat Groq pour générer une réponse à partir des passages récupérés. Ces composants sont des détails d’implémentation, ni des tâches ni des acteurs BPMN. L’ingestion initiale du manifeste est décrite dans [`embeddings/README.md`](../embeddings/README.md); elle ne transforme pas l’API en worker Zeebe.
 
 ## 4. Variables et décisions
 
