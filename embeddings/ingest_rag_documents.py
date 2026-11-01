@@ -9,6 +9,9 @@ import os
 from pathlib import Path
 from typing import Any
 
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+os.environ.setdefault("HF_HOME", str(PROJECT_ROOT / ".model-cache"))
+
 # Bound CPU thread pools to avoid excessive memory use during local model loading.
 os.environ.setdefault("OMP_NUM_THREADS", "1")
 os.environ.setdefault("MKL_NUM_THREADS", "1")
@@ -25,7 +28,6 @@ from pgvector.psycopg2 import register_vector
 from pypdf import PdfReader
 
 
-PROJECT_ROOT = Path(__file__).resolve().parents[1]
 RAG_DIR = PROJECT_ROOT / "rag_documents"
 MANIFEST_PATH = RAG_DIR / "manifest.csv"
 PIPELINE_ID = "returnflow_manifest_v1"
@@ -169,8 +171,10 @@ def main() -> None:
     entries = read_manifest()
     chunks = build_chunks(entries)
     model_name = os.getenv("RAG_EMBEDDING_MODEL", DEFAULT_MODEL)
+    local_only = os.getenv("RAG_EMBEDDING_LOCAL_ONLY", "false").strip().casefold() in {"1", "true", "yes", "on"}
     embedding_model = HuggingFaceEmbeddings(
         model_name=model_name,
+        model_kwargs={"local_files_only": True} if local_only else {},
         encode_kwargs={"normalize_embeddings": True},
     )
     # E5 expects these task prefixes for retrieval, including non-English text.

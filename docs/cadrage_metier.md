@@ -7,7 +7,7 @@
 
 ReturnFlow AI compare un processus manuel de référence avec un processus cible assisté par un worker automatisé, un RAG et un LLM. Le cas est inspiré des politiques publiques de retour SHEIN Maroc. Il ne représente pas le processus interne de SHEIN et n’utilise aucune donnée opérationnelle interne. Les cas, décisions, identifiants, délais et remboursements de démonstration sont simulés.
 
-Le BPMN TO-BE décrit le comportement visé. Les Service Tasks portent le type de job `shein-agent` et un en-tête `operation`. Le code actuel est un prototype FastAPI/LangGraph de question-réponse RAG, pas un worker Zeebe; il ne réalise pas encore les 14 opérations du modèle. Aucun prestataire de paiement n’est relié au projet.
+Le BPMN TO-BE décrit le comportement visé. Les Service Tasks portent le type de job `shein-agent` et un en-tête `operation`. Le worker Python `backend/zeebe_worker.py` consomme ces jobs et délègue les 14 opérations à `backend/returnflow_core.py`. Les systèmes de commandes, notifications externes et paiement ne sont pas reliés; ces actions restent simulées ou nécessitent des données fournies par un adaptateur amont.
 
 ## 2. Processus AS-IS et TO-BE
 
@@ -30,16 +30,16 @@ La résolution intervient après la validation et l’inspection éventuelle. El
 | Acteur | Responsabilité dans le modèle |
 |---|---|
 | Client | Soumettre la demande et fournir les compléments requis. |
-| `shein-agent` | Type de job prévu pour les tâches automatisées; worker Zeebe à développer. |
+| `shein-agent` | Worker Camunda 8 qui exécute les opérations automatisées du BPMN et conserve les validations humaines. |
 | Agent SAV | Analyse humaine de repli, validation des faits et de l’éligibilité, choix du besoin de retour, traitement des exceptions et confirmation de la résolution. |
 | Entrepôt | Enregistrer la réception et inspecter l’article retourné. |
 | Responsable SAV | Traiter l’escalade créée après le délai de validation de 24 heures. |
 
-Le prototype RAG utilise `intfloat/multilingual-e5-small` pour calculer localement les embeddings multilingues des règles et questions; PostgreSQL/pgvector stocke les passages et leurs vecteurs. L’API utilise le chat Groq pour générer une réponse à partir des passages récupérés. Ces composants sont des détails d’implémentation, ni des tâches ni des acteurs BPMN. L’ingestion initiale du manifeste est décrite dans [`embeddings/README.md`](../embeddings/README.md); elle ne transforme pas l’API en worker Zeebe.
+Le worker RAG utilise `intfloat/multilingual-e5-small` pour calculer localement les embeddings multilingues des règles et questions; PostgreSQL/pgvector stocke les passages et leurs vecteurs. Le chat Groq classe les demandes et rédige les réponses; il ne décide pas seul de l’éligibilité. Ces composants sont des détails d’implémentation, ni des tâches ni des acteurs BPMN. L’ingestion initiale du manifeste est décrite dans [`embeddings/README.md`](../embeddings/README.md).
 
 ## 4. Variables et décisions
 
-Le futur worker devra lire les données d’entrée, écrire les résultats attendus par le modèle et préserver les éléments de preuve utilisés pour chaque décision. Ces variables forment le contrat à implémenter; l’API actuelle ne les remplit pas encore.
+Le worker lit les variables visibles du processus et écrit les résultats attendus par le modèle. Il conserve les références et scores des extraits RAG avec la décision. L’adaptateur de commande reste externe: sans `orderFound` et données d’une intégration amont, le worker ne prétend pas consulter les systèmes SHEIN.
 
 | Domaine | Variables représentatives |
 |---|---|

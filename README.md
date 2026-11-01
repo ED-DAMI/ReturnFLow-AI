@@ -15,7 +15,7 @@ Projet du module *BPMN, Process Mining & Workflow AI* — IDSI 3
 
 Le projet compare un processus manuel de référence (**AS-IS**) à un processus cible assisté par automatisation (**TO-BE**). Le TO-BE centralise les tâches automatisées sous le type de job Camunda `shein-agent`, conserve les validations humaines et sépare la décision d’éligibilité du choix de résolution après inspection.
 
-Le BPMN TO-BE et ses formulaires décrivent le flux cible. Les scripts de génération et d’analyse Process Mining sont disponibles. Le code FastAPI/LangGraph est un prototype de question-réponse RAG; **il n’est pas encore le worker de jobs Zeebe** et ne réalise pas les 14 opérations du BPMN. Tant que l’adaptateur/worker Zeebe n’est pas développé et déployé, les jobs `shein-agent` du diagramme ne sont pas exécutés par cette API. Les opérations financières du diagramme restent simulées.
+Le BPMN TO-BE et ses formulaires décrivent le flux cible. Un worker Python Camunda 8 consomme maintenant les jobs `shein-agent` et implémente les 14 opérations déclarées dans les en-têtes `operation`. Le prototype FastAPI reste disponible pour tester le parcours RAG séparément. Les connexions SHEIN, notifications externes et opérations financières ne sont pas intégrées; les commandes, notifications et remboursements de démonstration restent simulés. Les décisions d’éligibilité sont déterministes et soumises à la validation du SAV dans le BPMN.
 
 ## 2. Processus modélisés
 
@@ -58,11 +58,11 @@ Le diagramme contient 17 occurrences de Service Tasks correspondant à 14 opéra
 | `refund-without-return` | Enregistrer un remboursement sans retour physique simulé |
 | `generate-grounded-final-response` | Rédiger la réponse finale à partir des faits établis |
 
-Un worker Camunda/Zeebe devra consommer le type `shein-agent`, traiter l’opération demandée, écrire les variables de processus attendues et compléter le job. Le prototype actuel ne fournit pas encore cette capacité. Les échecs techniques épuisant les retries Camunda doivent être traités comme incidents d’exécution par un opérateur; ils ne sont pas assimilés à une décision métier ni à un échec de paiement.
+Le worker [backend/zeebe_worker.py](backend/zeebe_worker.py) consomme le type `shein-agent` par l’API REST Orchestration Cluster Camunda 8. Il lit l’en-tête `operation`, exécute le gestionnaire correspondant dans [backend/returnflow_core.py](backend/returnflow_core.py), écrit les variables de sortie et complète le job. Les tâches qui dépendent d’une intégration indisponible (commande, notification, paiement) utilisent un résultat simulé ou les données fournies par un adaptateur amont. Les échecs techniques utilisent les retries définis dans le BPMN; un job sans retry crée un incident d’exécution à traiter par un opérateur. Le worker ne déploie pas automatiquement le BPMN : déployer le BPMN TO-BE et ses formulaires dans le cluster Camunda avant de démarrer une instance.
 
 ## 3. Prototype RAG et configuration
 
-Le prototype [backend/shein-agent.py](backend/shein-agent.py) expose une API FastAPI qui récupère les extraits pertinents dans PostgreSQL/pgvector, puis génère une réponse avec LangGraph et le chat Groq via l’API compatible OpenAI. Les embeddings sont calculés localement avec `intfloat/multilingual-e5-small`; ils ne passent pas par Groq et ne nécessitent pas de clé d’embeddings. L’ingestion de `rag_documents/manifest.csv` est réalisée par [embeddings/ingest_rag_documents.py](embeddings/ingest_rag_documents.py). PostgreSQL/pgvector et le RAG restent des détails d’implémentation, pas des acteurs ni des tâches BPMN. [docker-compose.yaml](docker-compose.yaml) démarre uniquement PostgreSQL; l’API et Zeebe ne sont pas inclus.
+Le module partagé [backend/returnflow_core.py](backend/returnflow_core.py) récupère les extraits pertinents dans PostgreSQL/pgvector et appelle le chat Groq via l’API compatible OpenAI. Les embeddings sont calculés localement avec `intfloat/multilingual-e5-small`; ils ne passent pas par Groq et ne nécessitent pas de clé d’embeddings. Pour générer une réponse, le texte de la demande et les passages RAG retenus sont transmis à Groq; n’indexez et ne traitez ainsi que des documents autorisés pour ce service cloud. L’API FastAPI [backend/shein-agent.py](backend/shein-agent.py) expose une route de démonstration RAG; [backend/zeebe_worker.py](backend/zeebe_worker.py) réutilise les mêmes services pour les jobs BPMN. L’ingestion de `rag_documents/manifest.csv` est réalisée par [embeddings/ingest_rag_documents.py](embeddings/ingest_rag_documents.py). PostgreSQL/pgvector et le RAG restent des détails d’implémentation, pas des acteurs ni des tâches BPMN. [docker-compose.yaml](docker-compose.yaml) démarre uniquement PostgreSQL; Camunda 8 doit être fourni séparément (cluster SaaS ou installation locale).
 
 Créer `.env` depuis `.env.example`, choisir un mot de passe local de base de données et renseigner une clé Groq obtenue dans votre compte :
 
@@ -74,20 +74,25 @@ GROQ_MODEL=openai/gpt-oss-20b
 
 Le modèle configuré par défaut doit être disponible dans la liste de modèles de votre compte Groq; modifiez `GROQ_MODEL` si nécessaire. Les quotas gratuits conviennent aux essais et démonstrations, mais ne constituent pas une capacité de production garantie. Garder la clé uniquement dans `.env` et ne jamais la committer. Les détails sont dans la [documentation de compatibilité OpenAI Groq](https://console.groq.com/docs/openai), la [liste des modèles](https://console.groq.com/docs/models) et les [limites de débit](https://console.groq.com/docs/rate-limits).
 
+Pour Camunda, renseigner `CAMUNDA_REST_URL` pour une installation locale. Pour Camunda SaaS, renseigner `CAMUNDA_REGION`, `CAMUNDA_CLUSTER_ID`, `CAMUNDA_CLIENT_ID`, `CAMUNDA_CLIENT_SECRET` et l’audience fournie avec les identifiants API. Ces paramètres restent dans le `.env` ignoré par Git. Le worker utilise `POST /v2/jobs/activation`, puis les routes de complétion ou d’échec de job de l’API REST Camunda.
+
 Le projet requiert Python 3.14 ou une version ultérieure. Si le port local 5432 est déjà utilisé, choisir `DB_PORT=5433` dans `.env`; cette valeur sert au port publié par Docker Compose et à la connexion de l’API.
 
 Pour lancer les composants actuellement présents, depuis la racine du dépôt :
 
 ~~~powershell
 if (-not (Test-Path .env)) { Copy-Item .env.example .env }
-# Renseigner DB_PASSWORD et GROQ_API_KEY dans .env; vérifier GROQ_MODEL dans le compte Groq
+# Renseigner DB_PASSWORD, GROQ_API_KEY et les paramètres du cluster Camunda dans .env
 docker compose up -d postgres
 uv sync
 uv run python embeddings/ingest_rag_documents.py
+# Terminal 1: API de démonstration facultative
 uv run python backend/shein-agent.py
+# Terminal 2: worker du BPMN TO-BE
+uv run python backend/zeebe_worker.py
 ~~~
 
-Lors de la première ingestion, Sentence Transformers télécharge le modèle d’embeddings. L’indexeur crée la table pgvector si nécessaire et indexe les PDF signalés dans le manifeste; relancez-le après une mise à jour du corpus. L’API écoute sur `http://localhost:8000`; sa route de démonstration est `POST /process-return`. Elle renvoie les sources et pages retenues et ne consomme pas les jobs Zeebe. Les détails de l’indexation sont dans [embeddings/README.md](embeddings/README.md).
+Lors de la première ingestion ou recherche, Sentence Transformers télécharge le modèle d’embeddings dans `.model-cache/` (ignoré par Git). L’indexeur crée la table pgvector si nécessaire et indexe les PDF signalés dans le manifeste; relancez-le après une mise à jour du corpus. L’API écoute sur `http://localhost:8000`; sa route `POST /process-return` renvoie les sources et pages retenues. Le worker démarre seulement si l’API REST du cluster Camunda est joignable et si le BPMN est déployé. Pour un test sans système de commandes, `DEMO_ORDER_LOOKUP=true` active une commande fictive (`DEMO-ORDER-001` / `DEMO-ITEM-001`); aucun connecteur SHEIN n’est appelé. Les notifications et remboursements sont consignés comme simulés, sans message externe ni paiement. Les détails d’indexation sont dans [embeddings/README.md](embeddings/README.md). Voir la [spécification Camunda d’activation de jobs](https://docs.camunda.io/docs/apis-tools/orchestration-cluster-api-rest/specifications/activate-jobs/) et les [mécanismes d’authentification REST](https://docs.camunda.io/docs/apis-tools/orchestration-cluster-api-rest/orchestration-cluster-api-rest-authentication/).
 
 ## 4. Process Mining
 
@@ -105,7 +110,7 @@ Le schéma est documenté dans [event_log_schema.csv](logs/04_process_mining/eve
 ## 5. Structure du dépôt
 
 - `camunda/` — BPMN AS-IS/TO-BE et formulaires Camunda.
-- `backend/` — prototype API RAG, pas encore le worker Zeebe.
+- `backend/` — services RAG partagés, API de démonstration et worker Zeebe.
 - `rag_documents/` — corpus documentaire pour cadrer les règles métier.
 - `embeddings/` — indexeur du corpus RAG et notes sur les embeddings locaux.
 - `logs/` — schéma, génération, protocole et provenance.

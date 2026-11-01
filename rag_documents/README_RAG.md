@@ -18,4 +18,4 @@ Les embeddings multilingues `intfloat/multilingual-e5-small` sont calculés loca
 
 Pour préparer l’index, lancer PostgreSQL, installer les dépendances du projet puis exécuter depuis la racine `uv run python embeddings/ingest_rag_documents.py`. Voir [`../embeddings/README.md`](../embeddings/README.md) et le README principal pour la configuration Groq et le lancement de l’API.
 
-Pour les questions sur les politiques publiques, privilégier les sources officielles ou normalisées et distinguer clairement les règles académiques. Le BPMN TO-BE prévoit l’opération `retrieve-return-policy-rag` pour le worker `shein-agent`; le prototype FastAPI enrichi par ce pipeline reste distinct d’un worker Zeebe et ne traite pas encore les jobs Camunda.
+Pour les questions sur les politiques publiques, privilégier les sources officielles ou normalisées et distinguer clairement les règles académiques. L’opération BPMN `retrieve-return-policy-rag` est exécutée par `backend/zeebe_worker.py` via les services partagés de `backend/returnflow_core.py`; l’API FastAPI conserve une route séparée pour tester le parcours RAG.
