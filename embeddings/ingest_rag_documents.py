@@ -9,6 +9,12 @@ import os
 from pathlib import Path
 from typing import Any
 
+# Bound CPU thread pools to avoid excessive memory use during local model loading.
+os.environ.setdefault("OMP_NUM_THREADS", "1")
+os.environ.setdefault("MKL_NUM_THREADS", "1")
+os.environ.setdefault("OPENBLAS_NUM_THREADS", "1")
+os.environ.setdefault("TOKENIZERS_PARALLELISM", "false")
+
 import psycopg2
 import tiktoken
 from dotenv import load_dotenv

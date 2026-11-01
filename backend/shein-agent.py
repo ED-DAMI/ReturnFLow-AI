@@ -6,6 +6,12 @@ import os
 from pathlib import Path
 from typing import TypedDict
 
+# Keep local model loading within the memory budget of typical Windows machines.
+os.environ.setdefault("OMP_NUM_THREADS", "1")
+os.environ.setdefault("MKL_NUM_THREADS", "1")
+os.environ.setdefault("OPENBLAS_NUM_THREADS", "1")
+os.environ.setdefault("TOKENIZERS_PARALLELISM", "false")
+
 import psycopg2
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
