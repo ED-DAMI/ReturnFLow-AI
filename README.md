@@ -74,6 +74,8 @@ GROQ_MODEL=openai/gpt-oss-20b
 
 Le modèle configuré par défaut doit être disponible dans la liste de modèles de votre compte Groq; modifiez `GROQ_MODEL` si nécessaire. Les quotas gratuits conviennent aux essais et démonstrations, mais ne constituent pas une capacité de production garantie. Garder la clé uniquement dans `.env` et ne jamais la committer. Les détails sont dans la [documentation de compatibilité OpenAI Groq](https://console.groq.com/docs/openai), la [liste des modèles](https://console.groq.com/docs/models) et les [limites de débit](https://console.groq.com/docs/rate-limits).
 
+Le projet requiert Python 3.14 ou une version ultérieure. Si le port local 5432 est déjà utilisé, choisir `DB_PORT=5433` dans `.env`; cette valeur sert au port publié par Docker Compose et à la connexion de l’API.
+
 Pour lancer les composants actuellement présents, depuis la racine du dépôt :
 
 ~~~powershell

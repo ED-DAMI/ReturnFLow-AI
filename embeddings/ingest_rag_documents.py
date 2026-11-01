@@ -12,10 +12,11 @@ from typing import Any
 import psycopg2
 import tiktoken
 from dotenv import load_dotenv
-from langchain_community.document_loaders import PyPDFLoader
-from langchain_community.embeddings import HuggingFaceEmbeddings
+from langchain_core.documents import Document
+from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from pgvector.psycopg2 import register_vector
+from pypdf import PdfReader
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
@@ -66,25 +67,30 @@ def build_chunks(entries: list[dict[str, str]]) -> list[dict[str, Any]]:
     chunks: list[dict[str, Any]] = []
     for entry in entries:
         source_id = Path(entry["file"]).as_posix()
-        documents = PyPDFLoader(entry["resolved_path"]).load()
-        for chunk_index, document in enumerate(splitter.split_documents(documents)):
-            content = document.page_content.strip()
-            if not content:
+        reader = PdfReader(entry["resolved_path"])
+        for page_index, pdf_page in enumerate(reader.pages):
+            page_text = pdf_page.extract_text() or ""
+            if not page_text.strip():
                 continue
-            page = int(document.metadata.get("page", 0)) + 1
-            digest = hashlib.sha256(
-                f"{source_id}|{page}|{chunk_index}|{content}".encode("utf-8")
-            ).hexdigest()
-            metadata = {
-                "source_id": source_id,
-                "source_type": entry["source_type"],
-                "language": entry["language"],
-                "country": entry["country"],
-                "page": page,
-                "chunk_index": chunk_index,
-                "embedding_pipeline": PIPELINE_ID,
-            }
-            chunks.append({"chunk_id": digest, "content": content, "metadata": metadata})
+            page_document = Document(page_content=page_text, metadata={"page": page_index})
+            for chunk_index, document in enumerate(splitter.split_documents([page_document])):
+                content = document.page_content.strip()
+                if not content:
+                    continue
+                page = page_index + 1
+                digest = hashlib.sha256(
+                    f"{source_id}|{page}|{chunk_index}|{content}".encode("utf-8")
+                ).hexdigest()
+                metadata = {
+                    "source_id": source_id,
+                    "source_type": entry["source_type"],
+                    "language": entry["language"],
+                    "country": entry["country"],
+                    "page": page,
+                    "chunk_index": chunk_index,
+                    "embedding_pipeline": PIPELINE_ID,
+                }
+                chunks.append({"chunk_id": digest, "content": content, "metadata": metadata})
     if not chunks:
         raise ValueError("No non-empty PDF passages were extracted from the RAG manifest.")
     return chunks

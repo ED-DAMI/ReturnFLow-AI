@@ -9,8 +9,8 @@ from typing import TypedDict
 import psycopg2
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
-from langchain_community.embeddings import HuggingFaceEmbeddings
 from langchain_core.messages import HumanMessage, SystemMessage
+from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_openai import ChatOpenAI
 from langgraph.graph import END, START, StateGraph
 from pgvector.psycopg2 import register_vector
