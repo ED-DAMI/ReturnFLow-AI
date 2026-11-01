@@ -1,21 +1,16 @@
-# Frameworks RAG & Agents
-langgraph>=0.2.0
+# Runtime dependencies declared in pyproject.toml
+chromadb>=0.5.0
+fastapi>=0.110.0
 langchain>=0.3.0
 langchain-community>=0.3.0
-
-# LLM et Embeddings
 langchain-openai>=0.2.0
-sentence-transformers>=3.0.0
-
-# Base de données vectorielle
-chromadb>=0.5.0
-
-# Traitement de documents
+langgraph>=0.2.0
+pgvector>=0.2.5
+psycopg2-binary>=2.9.0
+pydantic>=2.0.0
 pypdf>=4.0.0
-tiktoken>=0.7.0
-
-# Recherche Web pour l'agent
-tavily-python>=0.3.0
-
-# Variables d'environnement
 python-dotenv>=1.0.0
+sentence-transformers>=3.0.0
+tavily-python>=0.3.0
+tiktoken>=0.7.0
+uvicorn>=0.28.0

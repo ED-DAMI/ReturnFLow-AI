@@ -11,7 +11,7 @@
     {
       "type": "text",
       "id": "form-validation-sav-help",
-      "text": "L’IA et le RAG assistent l’analyse. Les règles déterministes évaluent l’éligibilité; l’agent valide la suite."
+      "text": "L’IA et le RAG assistent l’analyse. Les règles déterministes évaluent l’éligibilité. L’agent SAV confirme l’éligibilité et décide si un retour physique est nécessaire; le mode de résolution sera confirmé dans la tâche suivante."
     },
     {
       "label": "Motif déclaré",
@@ -88,35 +88,8 @@
       "type": "checkbox",
       "id": "form-validation-sav-returnRequired",
       "key": "returnRequired",
-      "description": "Décocher pour un remboursement sans retour.",
+      "description": "Cette décision concerne uniquement le retour physique. Le mode de résolution est confirmé après cette étape.",
       "defaultValue": true
-    },
-    {
-      "label": "Mode de traitement proposé",
-      "type": "select",
-      "id": "form-validation-sav-refundMethod",
-      "key": "refundMethod",
-      "values": [
-        {
-          "label": "Portefeuille SHEIN (simulation)",
-          "value": "shein_wallet"
-        },
-        {
-          "label": "Moyen de paiement initial (simulation)",
-          "value": "original_payment"
-        },
-        {
-          "label": "Remboursement sans retour (simulation)",
-          "value": "returnless"
-        },
-        {
-          "label": "Examen manuel",
-          "value": "manual"
-        }
-      ],
-      "validate": {
-        "required": true
-      }
     },
     {
       "label": "Note de validation SAV",

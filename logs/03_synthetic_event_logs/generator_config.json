@@ -1,24 +1,31 @@
 {
   "seed": 42,
-  "cases": 200,
-  "period": "2026-09-01 to 2026-10-30",
-  "reasons": [
-    "SIZE_FIT",
-    "COLOR_MISMATCH",
-    "FABRIC_QUALITY",
-    "SHAPE_CUT",
-    "DEFECTIVE",
-    "WRONG_ITEM",
-    "NOT_AS_DESCRIBED"
-  ],
-  "variants": [
+  "paired_common_cases": 200,
+  "to_be_extension_cases_per_scenario": 20,
+  "process_versions": ["AS_IS", "TO_BE"],
+  "common_scenarios": [
     "standard_accepted",
     "standard_refused",
-    "missing_information",
+    "missing_information"
+  ],
+  "to_be_only_scenarios": [
+    "order_correction",
+    "order_not_found",
+    "information_timeout",
     "ai_fallback_manual",
+    "rag_fallback_manual",
     "sla_escalation",
     "refund_without_return",
-    "qc_exception"
+    "qc_exception",
+    "manual_resolution"
   ],
-  "provenance": "synthetic academic data inspired by SHEIN public API schemas"
+  "resolution_values": [
+    "shein_wallet",
+    "original_payment",
+    "returnless",
+    "manual",
+    "none"
+  ],
+  "all_records_synthetic": true,
+  "durations_are_academic_assumptions": true
 }

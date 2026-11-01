@@ -1,18 +1,22 @@
-# Provenance et rigueur scientifique
+# Provenance et limites des données
 
-## Ce qui est reel
+## Données réelles utilisées
 
-- Les schemas et champs des APIs proviennent de la documentation publique SHEIN.
-- Les mappings de statuts reproduisent la semantique publiee par la plateforme SHEIN Developer.
-- Les liens de datasets produits/reviews pointent vers des sources publiques tierces ou academiques.
+- Les champs de référence et certains états d'API sont documentés dans les sources SHEIN Developer répertoriées sous `00_sources/` et `01_api_reference/`.
+- Les références de produits et d'avis externes sous `02_public_data/` sont des ressources de contexte facultatives; elles ne sont pas intégrées aux journaux de processus.
 
-## Ce qui est synthetique
+## Données synthétiques
 
-- `shein_returns_event_log_synthetic_200.csv`
-- `case_summary_synthetic_200.csv`
+- `event_log_as_is_synthetic.csv`
+- `event_log_to_be_synthetic.csv`
+- `case_summary_synthetic.csv`
 
-Ces deux fichiers ont ete generes pour ReturnFlow AI. Ils ne contiennent aucune donnee client SHEIN reelle et ne doivent jamais etre presentes comme des logs internes de l'entreprise.
+Ces fichiers sont générés par `generate_synthetic_logs.py` avec une graine fixe. Les cas, horodatages, motifs, identifiants, ressources et résultats sont fictifs. La cohorte `paired_common` garde les mêmes cas et résultats métier pour comparer les délais; les scénarios propres au TO-BE sont identifiés par `tobe_extension`.
 
-## Formulation recommandee en soutenance
+## Interprétation
 
-"Les journaux operationnels internes de SHEIN n'etant pas publics, nous avons construit un event log synthetique structure a partir des schemas, statuts et timestamps exposes par les API officielles SHEIN, puis enrichi avec des motifs de retour fashion adaptes a notre cas d'etude."
+Les journaux ne sont pas des données internes SHEIN et n'estiment pas sa performance réelle. Les champs de statut publics inspirent le schéma; les variantes, durées et probabilités sont des hypothèses pédagogiques définies par le générateur. Les branches et activités sont construites pour correspondre aux BPMN présents dans ce dépôt.
+
+## Formulation recommandée
+
+« Les journaux opérationnels internes n'étant pas publics, nous avons construit deux journaux synthétiques alignés sur les modèles BPMN académique AS-IS et TO-BE. Une cohorte appariée sert à comparer les durées simulées; des cas supplémentaires exercent les branches spécifiques au TO-BE. Ces résultats décrivent la simulation, pas le fonctionnement de SHEIN. »

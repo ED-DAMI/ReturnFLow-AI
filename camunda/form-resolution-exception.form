@@ -43,20 +43,13 @@
       }
     },
     {
-      "label": "Action exécutée ou motif du maintien en attente",
+      "label": "Action manuelle réalisée et justification",
       "type": "textarea",
       "id": "form-resolution-exception-manualResolutionNote",
       "key": "manualResolutionNote",
       "validate": {
         "required": true
       }
-    },
-    {
-      "label": "Traitement manuel terminé",
-      "type": "checkbox",
-      "id": "form-resolution-exception-manualResolutionCompleted",
-      "key": "manualResolutionCompleted",
-      "defaultValue": false
     }
   ],
   "executionPlatform": "Camunda Cloud",

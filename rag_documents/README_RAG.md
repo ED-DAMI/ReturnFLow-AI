@@ -1,21 +1,21 @@
-# ReturnFlow AI - Corpus RAG
+# ReturnFlow AI — corpus RAG
 
-Ce corpus rassemble les sources de reference publiques, les guides mode, les fiches produits et les regles academiques du projet.
+Ce corpus rassemble des sources publiques de référence, des guides de mode, des fiches produits et des règles académiques utilisées pour cadrer le projet.
 
 ## Provenance et usage
 
-- Les fichiers marques official_user_supplied proviennent des documents fournis par l'utilisateur.
-- Les fichiers public_source_normalized sont des syntheses ou des fiches basees sur des pages publiques indiquees dans sources.csv.
-- Les fichiers academic_simulated definissent des regles et exemples propres au projet; ne jamais les presenter comme des politiques internes SHEIN ni comme des politiques officielles.
-- manifest.csv est la liste de reference des documents a indexer; metadata.json en fournit une representation structuree. Respecter source_type, language, country et use_for_rag.
-- Les trois PDF a la racine sont des copies exactes des versions classees dans 01_sources_officielles; ils ne sont pas des entrees distinctes du manifeste et ne doivent pas etre indexes une seconde fois.
+- Les fichiers `official_user_supplied` sont issus des documents fournis pour le projet.
+- Les fichiers `public_source_normalized` résument ou structurent les pages publiques référencées dans `sources.csv`.
+- Les fichiers `academic_simulated` définissent des règles et exemples propres au cas académique; ils ne doivent pas être présentés comme des politiques SHEIN officielles ou internes.
+- `manifest.csv` est la liste de référence des documents destinés à l’indexation. `metadata.json` en fournit une représentation structurée. Préserver `source_type`, `language`, `country` et `use_for_rag`.
+- Les trois PDF à la racine sont des copies des versions classées sous `01_sources_officielles`; ils ne sont pas des entrées distinctes du manifeste et ne doivent pas être indexés deux fois.
 
-## Ingestion par shein-agent
+## Ingestion prévue
 
 1. Extraire le texte des PDF et conserver les identifiants de source.
-2. Decouper par section (environ 500-900 tokens, chevauchement 80-120) sans separer les conditions d'une meme regle.
-3. Indexer les passages avec le composant de recherche choisi lors de l'implementation du worker. Le corpus ne prescrit pas de base de donnees ni de moteur de stockage.
-4. Conserver les metadonnees du manifeste avec chaque passage et retourner les identifiants de source avec les reponses RAG.
-5. Pour les questions sur la politique publique, privilegier les sources officielles ou normalisees et distinguer explicitement toute regle academique du projet.
+2. Découper le texte par section (environ 500 à 900 tokens, chevauchement de 80 à 120) sans séparer les conditions d’une même règle.
+3. Indexer les passages avec le moteur choisi lors de l’implémentation du worker. Le manifeste ne prescrit ni base de données ni moteur de stockage.
+4. Conserver les métadonnées du manifeste avec chaque passage et retourner les identifiants de source avec les réponses RAG.
+5. Pour les questions sur les politiques publiques, privilégier les sources officielles ou normalisées et distinguer clairement les règles académiques.
 
-Dans le BPMN TO-BE, l'operation retrieve-return-policy-rag est une des operations du worker shein-agent. Le worker reste a implementer.
+Le BPMN TO-BE prévoit l’opération `retrieve-return-policy-rag` pour le worker `shein-agent`. Le prototype FastAPI actuel ne traite pas les jobs Zeebe et n’ingère pas encore ce manifeste. Le worker, l’ingestion du corpus et le contrat de retour des références restent à implémenter.

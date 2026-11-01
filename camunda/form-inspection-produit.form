@@ -166,14 +166,6 @@
       "validate": {
         "required": true
       }
-    },
-    {
-      "label": "Contrôle qualité validé",
-      "type": "checkbox",
-      "id": "form-inspection-produit-qualityCheckPassed",
-      "key": "qualityCheckPassed",
-      "description": "Cette valeur alimente la passerelle BPMN.",
-      "defaultValue": false
     }
   ],
   "executionPlatform": "Camunda Cloud",

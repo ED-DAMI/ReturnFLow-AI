@@ -1,8 +1,12 @@
-<?xml version='1.0' encoding='UTF-8'?>
-<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" xmlns:zeebe="http://camunda.org/schema/zeebe/1.0" xmlns:modeler="http://camunda.org/schema/modeler/1.0" id="Definitions_ReturnFlowAI" targetNamespace="http://returnflow.ai/bpmn" exporter="Camunda Modeler" exporterVersion="5.52.0" modeler:executionPlatform="Camunda Cloud" modeler:executionPlatformVersion="8.10.0">
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:zeebe="http://camunda.org/schema/zeebe/1.0" xmlns:modeler="http://camunda.org/schema/modeler/1.0" id="Definitions_ReturnFlowAI" targetNamespace="http://returnflow.ai/bpmn" exporter="Camunda Modeler" exporterVersion="5.52.0" modeler:executionPlatform="Camunda Cloud" modeler:executionPlatformVersion="8.10.0">
   <bpmn:process id="returnflow-ai-shein-rag" name="ReturnFlow AI - Cas académique SHEIN | Retours vêtements + RAG" isExecutable="true">
-    <bpmn:documentation>Cas d'étude académique inspiré des politiques publiques de retour SHEIN Maroc. Le processus interne réel de SHEIN n'est pas reproduit. Périmètre: vêtements et motifs taille/fit, couleur, tissu/qualité, coupe/forme, article défectueux, mauvais article, non conforme à la description. Le worker unique shein-agent traite toutes les tâches automatisées: recherche de commande, contrôles, RAG, extraction des faits, règles/DMN, génération des réponses, notifications et résolution simulée. La décision humaine SAV reste traçable.</bpmn:documentation>
-    <bpmn:textAnnotation id="TextAnnotation_SheinAgent"><bpmn:text>shein-agent&#10;Worker unique des tâches automatisées</bpmn:text></bpmn:textAnnotation>
+    <bpmn:documentation>Cas d'étude académique inspiré des politiques publiques de retour SHEIN Maroc. Le processus interne réel de SHEIN n'est pas reproduit. Le worker unique shein-agent traite les tâches automatisées : recherche de commande, contrôles, RAG, analyse assistée par LLM, application des règles déterministes, génération des réponses, notifications et remboursements simulés. Le LLM ne décide jamais seul de l'éligibilité. Les détails techniques du stockage RAG ne sont pas modélisés comme des tâches de processus.</bpmn:documentation>
+    <bpmn:textAnnotation id="TextAnnotation_SheinAgent">
+      <bpmn:text>shein-agent&#10;Worker unique des tâches automatisées</bpmn:text>
+    </bpmn:textAnnotation>
+
+    <!-- ========== Réception et vérification de la commande ========== -->
     <bpmn:startEvent id="StartEvent_ReturnRequest" name="Demande de retour reçue">
       <bpmn:outgoing>Flow_Start_To_Submit</bpmn:outgoing>
     </bpmn:startEvent>
@@ -16,7 +20,10 @@
     </bpmn:userTask>
     <bpmn:serviceTask id="Task_FetchOrder" name="Récupérer la commande, l'article et la fiche produit">
       <bpmn:extensionElements>
-        <zeebe:taskDefinition type="shein-agent" retries="3"/><zeebe:taskHeaders><zeebe:header key="operation" value="fetch-fashion-order-item"/></zeebe:taskHeaders>
+        <zeebe:taskDefinition type="shein-agent" retries="3" />
+        <zeebe:taskHeaders>
+          <zeebe:header key="operation" value="fetch-fashion-order-item" />
+        </zeebe:taskHeaders>
       </bpmn:extensionElements>
       <bpmn:incoming>Flow_Submit_To_Fetch</bpmn:incoming>
       <bpmn:incoming>Flow_Correction_Yes</bpmn:incoming>
@@ -40,87 +47,167 @@
       <bpmn:outgoing>Flow_Correction_Yes</bpmn:outgoing>
       <bpmn:outgoing>Flow_Correction_No</bpmn:outgoing>
     </bpmn:exclusiveGateway>
-    <bpmn:endEvent id="End_OrderNotFound" name="Clôturé - commande introuvable">
+    <bpmn:serviceTask id="Task_NotifyOrderNotFound" name="Notifier la clôture - références introuvables">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="shein-agent" retries="3" />
+        <zeebe:taskHeaders>
+          <zeebe:header key="operation" value="notify-client" />
+        </zeebe:taskHeaders>
+      </bpmn:extensionElements>
       <bpmn:incoming>Flow_Correction_No</bpmn:incoming>
+      <bpmn:outgoing>Flow_OrderNotFound_To_End</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:endEvent id="End_OrderNotFound" name="Dossier clôturé - références introuvables">
+      <bpmn:incoming>Flow_OrderNotFound_To_End</bpmn:incoming>
     </bpmn:endEvent>
+
+    <!-- ========== Informations minimales ========== -->
     <bpmn:serviceTask id="Task_CheckMinimumInfo" name="Valider les informations minimales">
-  <bpmn:extensionElements><zeebe:taskDefinition type="shein-agent" retries="3"/><zeebe:taskHeaders><zeebe:header key="operation" value="validate-return-data"/></zeebe:taskHeaders></bpmn:extensionElements>
-  <bpmn:incoming>Flow_OrderFound_Yes</bpmn:incoming>
-  <bpmn:incoming>Flow_AdditionalInfo_To_Check</bpmn:incoming>
-  <bpmn:outgoing>Flow_Check_To_InfoComplete</bpmn:outgoing>
-</bpmn:serviceTask>
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="shein-agent" retries="3" />
+        <zeebe:taskHeaders>
+          <zeebe:header key="operation" value="validate-return-data" />
+        </zeebe:taskHeaders>
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_OrderFound_Yes</bpmn:incoming>
+      <bpmn:incoming>Flow_AdditionalInfo_To_Check</bpmn:incoming>
+      <bpmn:outgoing>Flow_Check_To_InfoComplete</bpmn:outgoing>
+    </bpmn:serviceTask>
     <bpmn:exclusiveGateway id="Gateway_InfoComplete" name="Informations complètes ?" default="Flow_InfoComplete_No">
       <bpmn:incoming>Flow_Check_To_InfoComplete</bpmn:incoming>
       <bpmn:outgoing>Flow_InfoComplete_Yes</bpmn:outgoing>
       <bpmn:outgoing>Flow_InfoComplete_No</bpmn:outgoing>
     </bpmn:exclusiveGateway>
-    <bpmn:userTask id="Task_RequestAdditionalInfo" name="Demander complément au client">
+    <bpmn:serviceTask id="Task_RequestAdditionalInfo" name="Demander un complément au client">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="shein-agent" retries="3" />
+        <zeebe:taskHeaders>
+          <zeebe:header key="operation" value="request-additional-information" />
+        </zeebe:taskHeaders>
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_InfoComplete_No</bpmn:incoming>
+      <bpmn:outgoing>Flow_RequestInfo_To_ReceiveInfo</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:userTask id="Task_ReceiveAdditionalInfo" name="Enregistrer le complément reçu">
       <bpmn:extensionElements>
         <zeebe:userTask />
         <zeebe:formDefinition formId="form-complement-information" />
       </bpmn:extensionElements>
-      <bpmn:incoming>Flow_InfoComplete_No</bpmn:incoming>
+      <bpmn:incoming>Flow_RequestInfo_To_ReceiveInfo</bpmn:incoming>
       <bpmn:outgoing>Flow_AdditionalInfo_To_Check</bpmn:outgoing>
     </bpmn:userTask>
-    <bpmn:boundaryEvent id="Boundary_InfoTimeout" name="48 h sans réponse" attachedToRef="Task_RequestAdditionalInfo" cancelActivity="true">
-      <bpmn:outgoing>Flow_InfoTimeout_To_End</bpmn:outgoing>
+    <bpmn:boundaryEvent id="Boundary_InfoTimeout" name="48 h sans réponse" cancelActivity="true" attachedToRef="Task_ReceiveAdditionalInfo">
+      <bpmn:outgoing>Flow_InfoTimeout_To_Notify</bpmn:outgoing>
       <bpmn:timerEventDefinition>
-        <bpmn:timeDuration xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="bpmn:tFormalExpression">PT48H</bpmn:timeDuration>
+        <bpmn:timeDuration xsi:type="bpmn:tFormalExpression">PT48H</bpmn:timeDuration>
       </bpmn:timerEventDefinition>
     </bpmn:boundaryEvent>
-    <bpmn:endEvent id="End_Incomplete" name="Clôturé - informations incomplètes">
-      <bpmn:incoming>Flow_InfoTimeout_To_End</bpmn:incoming>
+    <bpmn:serviceTask id="Task_NotifyIncomplete" name="Notifier la clôture - complément non reçu">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="shein-agent" retries="3" />
+        <zeebe:taskHeaders>
+          <zeebe:header key="operation" value="notify-client" />
+        </zeebe:taskHeaders>
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_InfoTimeout_To_Notify</bpmn:incoming>
+      <bpmn:outgoing>Flow_NotifyIncomplete_To_End</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:endEvent id="End_Incomplete" name="Dossier clôturé - informations incomplètes">
+      <bpmn:incoming>Flow_NotifyIncomplete_To_End</bpmn:incoming>
     </bpmn:endEvent>
-    <bpmn:subProcess xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" id="SubProcess_EvaluateRequest" name="Évaluer la demande - RAG + règles métier">
-  <bpmn:incoming>Flow_InfoComplete_Yes</bpmn:incoming>
-  <bpmn:outgoing>Flow_Evaluate_To_Eligible</bpmn:outgoing>
-  <bpmn:startEvent id="Start_Evaluate"><bpmn:outgoing>Flow_EvalStart_To_AI</bpmn:outgoing></bpmn:startEvent>
-  <bpmn:serviceTask id="Task_AIAnalysis" name="Analyser le motif du retour (LLM / OpenRouter)">
-    <bpmn:documentation>Classifie le motif: SIZE_FIT, COLOR_MISMATCH, FABRIC_QUALITY, SHAPE_CUT, DEFECTIVE, WRONG_ITEM, NOT_AS_DESCRIBED, OTHER. Produit résumé, sentiment, urgence et aiAvailable.</bpmn:documentation>
-    <bpmn:extensionElements><zeebe:taskDefinition type="shein-agent" retries="2"/><zeebe:taskHeaders><zeebe:header key="operation" value="classify-fashion-return"/></zeebe:taskHeaders></bpmn:extensionElements>
-    <bpmn:incoming>Flow_EvalStart_To_AI</bpmn:incoming><bpmn:outgoing>Flow_AI_To_Available</bpmn:outgoing>
-  </bpmn:serviceTask>
-  <bpmn:exclusiveGateway id="Gateway_AIAvailable" name="IA disponible ?" default="Flow_AI_No">
-    <bpmn:incoming>Flow_AI_To_Available</bpmn:incoming><bpmn:outgoing>Flow_AI_Yes</bpmn:outgoing><bpmn:outgoing>Flow_AI_No</bpmn:outgoing>
-  </bpmn:exclusiveGateway>
-  <bpmn:serviceTask id="Task_RetrievePolicyRAG" name="Rechercher les politiques via le RAG de shein-agent">
-    <bpmn:documentation>shein-agent effectue une recherche sémantique dans les sources intégrées: politique de retour publique, FAQ, règles vêtements, guides tailles et fiches produits. Retourne policyChunks, sourceIds, similarityScores, ragContextFound.</bpmn:documentation>
-    <bpmn:extensionElements><zeebe:taskDefinition type="shein-agent" retries="3"/><zeebe:taskHeaders><zeebe:header key="operation" value="retrieve-return-policy-rag"/></zeebe:taskHeaders></bpmn:extensionElements>
-    <bpmn:incoming>Flow_AI_Yes</bpmn:incoming><bpmn:outgoing>Flow_RAG_To_Context</bpmn:outgoing>
-  </bpmn:serviceTask>
-  <bpmn:exclusiveGateway id="Gateway_RAGContext" name="Contexte RAG suffisant ?" default="Flow_RAG_No">
-    <bpmn:incoming>Flow_RAG_To_Context</bpmn:incoming><bpmn:outgoing>Flow_RAG_Yes</bpmn:outgoing><bpmn:outgoing>Flow_RAG_No</bpmn:outgoing>
-  </bpmn:exclusiveGateway>
-  <bpmn:serviceTask id="Task_ExtractFacts" name="Extraire les faits + preuves citées">
-    <bpmn:documentation>Sortie structurée: catégorie, jours depuis réception, état, porté/lavé/modifié, étiquettes, défaut, preuves et références de politique utilisées. Le LLM n'accorde pas le retour.</bpmn:documentation>
-    <bpmn:extensionElements><zeebe:taskDefinition type="shein-agent" retries="2"/><zeebe:taskHeaders><zeebe:header key="operation" value="extract-grounded-return-facts"/></zeebe:taskHeaders></bpmn:extensionElements>
-    <bpmn:incoming>Flow_RAG_Yes</bpmn:incoming><bpmn:outgoing>Flow_Facts_To_Eligibility</bpmn:outgoing>
-  </bpmn:serviceTask>
-  <bpmn:userTask id="Task_ManualAnalysis" name="Analyse manuelle des faits / règles">
-    <bpmn:extensionElements>
-      <zeebe:userTask />
-      <zeebe:formDefinition formId="form-analyse-manuelle" />
-    </bpmn:extensionElements>
-    <bpmn:documentation>Fallback si OpenRouter est indisponible ou si le RAG ne fournit pas un contexte suffisant.</bpmn:documentation>
-    <bpmn:incoming>Flow_AI_No</bpmn:incoming><bpmn:incoming>Flow_RAG_No</bpmn:incoming><bpmn:outgoing>Flow_Manual_To_Eligibility</bpmn:outgoing>
-  </bpmn:userTask>
-  <bpmn:serviceTask id="Task_EvaluateEligibility" name="Évaluer l'éligibilité (règles déterministes / DMN)">
-    <bpmn:documentation>Décision déterministe à partir des faits structurés et des règles sourcées. Base académique alignée sur la politique publique SHEIN Maroc: la plupart des articles neufs sont retournables sous conditions dans les 30 jours suivant la réception; les vêtements doivent notamment être neufs, non portés, non lavés, non endommagés, non modifiés, avec les étiquettes d'origine attachées; certaines catégories (par ex. bodys, maillots de bain, lingerie, sous-vêtements) sont non retournables; un article reçu défectueux ou endommagé suit le chemin SAV dédié si le client contacte le service client dans le délai public indiqué. Le LLM ne prend jamais seul la décision finale.</bpmn:documentation>
-    <bpmn:extensionElements><zeebe:taskDefinition type="shein-agent" retries="3"/><zeebe:taskHeaders><zeebe:header key="operation" value="evaluate-return-eligibility"/></zeebe:taskHeaders></bpmn:extensionElements>
-    <bpmn:incoming>Flow_Facts_To_Eligibility</bpmn:incoming><bpmn:incoming>Flow_Manual_To_Eligibility</bpmn:incoming><bpmn:outgoing>Flow_Eligibility_To_EvalEnd</bpmn:outgoing>
-  </bpmn:serviceTask>
-  <bpmn:endEvent id="End_Evaluate"><bpmn:incoming>Flow_Eligibility_To_EvalEnd</bpmn:incoming></bpmn:endEvent>
-  <bpmn:sequenceFlow id="Flow_EvalStart_To_AI" sourceRef="Start_Evaluate" targetRef="Task_AIAnalysis"/>
-  <bpmn:sequenceFlow id="Flow_AI_To_Available" sourceRef="Task_AIAnalysis" targetRef="Gateway_AIAvailable"/>
-  <bpmn:sequenceFlow id="Flow_AI_Yes" name="Oui" sourceRef="Gateway_AIAvailable" targetRef="Task_RetrievePolicyRAG"><bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">= aiAvailable = true</bpmn:conditionExpression></bpmn:sequenceFlow>
-  <bpmn:sequenceFlow id="Flow_AI_No" name="Non / fallback" sourceRef="Gateway_AIAvailable" targetRef="Task_ManualAnalysis"/>
-  <bpmn:sequenceFlow id="Flow_RAG_To_Context" sourceRef="Task_RetrievePolicyRAG" targetRef="Gateway_RAGContext"/>
-  <bpmn:sequenceFlow id="Flow_RAG_Yes" name="Oui" sourceRef="Gateway_RAGContext" targetRef="Task_ExtractFacts"><bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">= ragContextFound = true</bpmn:conditionExpression></bpmn:sequenceFlow>
-  <bpmn:sequenceFlow id="Flow_RAG_No" name="Non / revue manuelle" sourceRef="Gateway_RAGContext" targetRef="Task_ManualAnalysis"/>
-  <bpmn:sequenceFlow id="Flow_Facts_To_Eligibility" sourceRef="Task_ExtractFacts" targetRef="Task_EvaluateEligibility"/>
-  <bpmn:sequenceFlow id="Flow_Manual_To_Eligibility" sourceRef="Task_ManualAnalysis" targetRef="Task_EvaluateEligibility"/>
-  <bpmn:sequenceFlow id="Flow_Eligibility_To_EvalEnd" sourceRef="Task_EvaluateEligibility" targetRef="End_Evaluate"/>
-</bpmn:subProcess>
+
+    <!-- ========== Évaluation : RAG + règles métier ========== -->
+    <bpmn:subProcess id="SubProcess_EvaluateRequest" name="Évaluer la demande - RAG + règles métier">
+      <bpmn:incoming>Flow_InfoComplete_Yes</bpmn:incoming>
+      <bpmn:outgoing>Flow_Evaluate_To_Eligible</bpmn:outgoing>
+      <bpmn:startEvent id="Start_Evaluate">
+        <bpmn:outgoing>Flow_EvalStart_To_AI</bpmn:outgoing>
+      </bpmn:startEvent>
+      <bpmn:serviceTask id="Task_AIAnalysis" name="Analyser le motif du retour avec le LLM">
+        <bpmn:documentation>Classifie le motif: SIZE_FIT, COLOR_MISMATCH, FABRIC_QUALITY, SHAPE_CUT, DEFECTIVE, WRONG_ITEM, NOT_AS_DESCRIBED, OTHER. Produit résumé, sentiment, urgence et aiAvailable.</bpmn:documentation>
+        <bpmn:extensionElements>
+          <zeebe:taskDefinition type="shein-agent" retries="2" />
+          <zeebe:taskHeaders>
+            <zeebe:header key="operation" value="classify-fashion-return" />
+          </zeebe:taskHeaders>
+        </bpmn:extensionElements>
+        <bpmn:incoming>Flow_EvalStart_To_AI</bpmn:incoming>
+        <bpmn:outgoing>Flow_AI_To_Available</bpmn:outgoing>
+      </bpmn:serviceTask>
+      <bpmn:exclusiveGateway id="Gateway_AIAvailable" name="IA disponible ?" default="Flow_AI_No">
+        <bpmn:incoming>Flow_AI_To_Available</bpmn:incoming>
+        <bpmn:outgoing>Flow_AI_Yes</bpmn:outgoing>
+        <bpmn:outgoing>Flow_AI_No</bpmn:outgoing>
+      </bpmn:exclusiveGateway>
+      <bpmn:serviceTask id="Task_RetrievePolicyRAG" name="Rechercher les politiques via le RAG de shein-agent">
+        <bpmn:documentation>shein-agent recherche les passages pertinents dans le corpus de règles et renvoie policyChunks, sourceIds, similarityScores et ragContextFound.</bpmn:documentation>
+        <bpmn:extensionElements>
+          <zeebe:taskDefinition type="shein-agent" retries="3" />
+          <zeebe:taskHeaders>
+            <zeebe:header key="operation" value="retrieve-return-policy-rag" />
+          </zeebe:taskHeaders>
+        </bpmn:extensionElements>
+        <bpmn:incoming>Flow_AI_Yes</bpmn:incoming>
+        <bpmn:outgoing>Flow_RAG_To_Context</bpmn:outgoing>
+      </bpmn:serviceTask>
+      <bpmn:exclusiveGateway id="Gateway_RAGContext" name="Contexte RAG suffisant ?" default="Flow_RAG_No">
+        <bpmn:incoming>Flow_RAG_To_Context</bpmn:incoming>
+        <bpmn:outgoing>Flow_RAG_Yes</bpmn:outgoing>
+        <bpmn:outgoing>Flow_RAG_No</bpmn:outgoing>
+      </bpmn:exclusiveGateway>
+      <bpmn:serviceTask id="Task_ExtractFacts" name="Extraire les faits + preuves citées">
+        <bpmn:documentation>Sortie structurée: catégorie, jours depuis réception, état, porté/lavé/modifié, étiquettes, défaut, preuves et références de politique utilisées. Le LLM n'accorde pas le retour.</bpmn:documentation>
+        <bpmn:extensionElements>
+          <zeebe:taskDefinition type="shein-agent" retries="2" />
+          <zeebe:taskHeaders>
+            <zeebe:header key="operation" value="extract-grounded-return-facts" />
+          </zeebe:taskHeaders>
+        </bpmn:extensionElements>
+        <bpmn:incoming>Flow_RAG_Yes</bpmn:incoming>
+        <bpmn:outgoing>Flow_Facts_To_Eligibility</bpmn:outgoing>
+      </bpmn:serviceTask>
+      <bpmn:userTask id="Task_ManualAnalysis" name="Analyse manuelle des faits / règles">
+        <bpmn:documentation>Analyse humaine de repli si le LLM est indisponible ou si le RAG ne fournit pas un contexte suffisant.</bpmn:documentation>
+        <bpmn:extensionElements>
+          <zeebe:userTask />
+          <zeebe:formDefinition formId="form-analyse-manuelle" />
+        </bpmn:extensionElements>
+        <bpmn:incoming>Flow_AI_No</bpmn:incoming>
+        <bpmn:incoming>Flow_RAG_No</bpmn:incoming>
+        <bpmn:outgoing>Flow_Manual_To_Eligibility</bpmn:outgoing>
+      </bpmn:userTask>
+      <bpmn:serviceTask id="Task_EvaluateEligibility" name="Évaluer l'éligibilité (règles déterministes / DMN)">
+        <bpmn:documentation>Décision déterministe à partir des faits structurés et des règles sourcées. Base académique alignée sur la politique publique SHEIN Maroc: la plupart des articles neufs sont retournables sous conditions dans les 30 jours suivant la réception; les vêtements doivent notamment être neufs, non portés, non lavés, non endommagés, non modifiés, avec les étiquettes d'origine attachées; certaines catégories (par ex. bodys, maillots de bain, lingerie, sous-vêtements) sont non retournables; un article reçu défectueux ou endommagé suit le chemin SAV dédié si le client contacte le service client dans le délai public indiqué. Le LLM ne prend jamais seul la décision finale.</bpmn:documentation>
+        <bpmn:extensionElements>
+          <zeebe:taskDefinition type="shein-agent" retries="3" />
+          <zeebe:taskHeaders>
+            <zeebe:header key="operation" value="evaluate-return-eligibility" />
+          </zeebe:taskHeaders>
+        </bpmn:extensionElements>
+        <bpmn:incoming>Flow_Facts_To_Eligibility</bpmn:incoming>
+        <bpmn:incoming>Flow_Manual_To_Eligibility</bpmn:incoming>
+        <bpmn:outgoing>Flow_Eligibility_To_EvalEnd</bpmn:outgoing>
+      </bpmn:serviceTask>
+      <bpmn:endEvent id="End_Evaluate">
+        <bpmn:incoming>Flow_Eligibility_To_EvalEnd</bpmn:incoming>
+      </bpmn:endEvent>
+      <bpmn:sequenceFlow id="Flow_EvalStart_To_AI" sourceRef="Start_Evaluate" targetRef="Task_AIAnalysis" />
+      <bpmn:sequenceFlow id="Flow_AI_To_Available" sourceRef="Task_AIAnalysis" targetRef="Gateway_AIAvailable" />
+      <bpmn:sequenceFlow id="Flow_AI_Yes" name="Oui" sourceRef="Gateway_AIAvailable" targetRef="Task_RetrievePolicyRAG">
+        <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">= aiAvailable = true</bpmn:conditionExpression>
+      </bpmn:sequenceFlow>
+      <bpmn:sequenceFlow id="Flow_AI_No" name="Non / fallback" sourceRef="Gateway_AIAvailable" targetRef="Task_ManualAnalysis" />
+      <bpmn:sequenceFlow id="Flow_RAG_To_Context" sourceRef="Task_RetrievePolicyRAG" targetRef="Gateway_RAGContext" />
+      <bpmn:sequenceFlow id="Flow_RAG_Yes" name="Oui" sourceRef="Gateway_RAGContext" targetRef="Task_ExtractFacts">
+        <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">= ragContextFound = true</bpmn:conditionExpression>
+      </bpmn:sequenceFlow>
+      <bpmn:sequenceFlow id="Flow_RAG_No" name="Non / revue manuelle" sourceRef="Gateway_RAGContext" targetRef="Task_ManualAnalysis" />
+      <bpmn:sequenceFlow id="Flow_Facts_To_Eligibility" sourceRef="Task_ExtractFacts" targetRef="Task_EvaluateEligibility" />
+      <bpmn:sequenceFlow id="Flow_Manual_To_Eligibility" sourceRef="Task_ManualAnalysis" targetRef="Task_EvaluateEligibility" />
+      <bpmn:sequenceFlow id="Flow_Eligibility_To_EvalEnd" sourceRef="Task_EvaluateEligibility" targetRef="End_Evaluate" />
+    </bpmn:subProcess>
+
+    <!-- ========== Décision d'éligibilité ========== -->
     <bpmn:exclusiveGateway id="Gateway_Eligible" name="Retour éligible selon règles ?" default="Flow_Eligible_No">
       <bpmn:incoming>Flow_Evaluate_To_Eligible</bpmn:incoming>
       <bpmn:outgoing>Flow_Eligible_Yes</bpmn:outgoing>
@@ -128,14 +215,20 @@
     </bpmn:exclusiveGateway>
     <bpmn:serviceTask id="Task_GenerateRefusal" name="Générer un refus expliqué et sourcé">
       <bpmn:extensionElements>
-        <zeebe:taskDefinition type="shein-agent" retries="2"/><zeebe:taskHeaders><zeebe:header key="operation" value="generate-grounded-refusal-response"/></zeebe:taskHeaders>
+        <zeebe:taskDefinition type="shein-agent" retries="2" />
+        <zeebe:taskHeaders>
+          <zeebe:header key="operation" value="generate-grounded-refusal-response" />
+        </zeebe:taskHeaders>
       </bpmn:extensionElements>
       <bpmn:incoming>Flow_Eligible_No</bpmn:incoming>
       <bpmn:outgoing>Flow_Refusal_To_Notify</bpmn:outgoing>
     </bpmn:serviceTask>
     <bpmn:serviceTask id="Task_NotifyRefusal" name="Notifier le client du refus">
       <bpmn:extensionElements>
-        <zeebe:taskDefinition type="shein-agent" retries="3"/><zeebe:taskHeaders><zeebe:header key="operation" value="notify-client"/></zeebe:taskHeaders>
+        <zeebe:taskDefinition type="shein-agent" retries="3" />
+        <zeebe:taskHeaders>
+          <zeebe:header key="operation" value="notify-client" />
+        </zeebe:taskHeaders>
       </bpmn:extensionElements>
       <bpmn:incoming>Flow_Refusal_To_Notify</bpmn:incoming>
       <bpmn:outgoing>Flow_NotifyRefusal_To_End</bpmn:outgoing>
@@ -143,74 +236,108 @@
     <bpmn:endEvent id="End_Refused" name="Dossier refusé et clôturé">
       <bpmn:incoming>Flow_NotifyRefusal_To_End</bpmn:incoming>
     </bpmn:endEvent>
-    <bpmn:subProcess xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" id="SubProcess_HandleAuthorizedReturn" name="Traiter le retour autorisé - human-in-the-loop + contrôle qualité">
-  <bpmn:incoming>Flow_Eligible_Yes</bpmn:incoming><bpmn:outgoing>Flow_Handle_To_Resolve</bpmn:outgoing>
-  <bpmn:startEvent id="Start_Handle"><bpmn:outgoing>Flow_HandleStart_To_Validate</bpmn:outgoing></bpmn:startEvent>
-  <bpmn:userTask id="Task_ValidateSolution" name="Valider la solution proposée par l'IA">
-    <bpmn:extensionElements>
-      <zeebe:userTask />
-      <zeebe:formDefinition formId="form-validation-sav" />
-    </bpmn:extensionElements>
-    <bpmn:documentation>L'agent SAV voit le motif, résumé, confiance, règles citées, recommandation et décide. Il peut modifier returnRequired et le mode de remboursement.</bpmn:documentation>
-    <bpmn:incoming>Flow_HandleStart_To_Validate</bpmn:incoming><bpmn:outgoing>Flow_Validate_To_ReturnRequired</bpmn:outgoing>
-  </bpmn:userTask>
-  <bpmn:boundaryEvent id="Boundary_SLA24h" name="SLA 24 h dépassé" attachedToRef="Task_ValidateSolution" cancelActivity="false">
-    <bpmn:outgoing>Flow_SLA_To_Escalate</bpmn:outgoing>
-    <bpmn:timerEventDefinition><bpmn:timeDuration xsi:type="bpmn:tFormalExpression">PT24H</bpmn:timeDuration></bpmn:timerEventDefinition>
-  </bpmn:boundaryEvent>
-  <bpmn:userTask id="Task_EscalateSupervisor" name="Escalader / relancer le superviseur">
-    <bpmn:extensionElements>
-      <zeebe:userTask />
-      <zeebe:formDefinition formId="form-escalade-sav" />
-    </bpmn:extensionElements>
-    <bpmn:incoming>Flow_SLA_To_Escalate</bpmn:incoming><bpmn:outgoing>Flow_Escalate_To_End</bpmn:outgoing>
-  </bpmn:userTask>
-  <bpmn:endEvent id="End_Escalation"><bpmn:incoming>Flow_Escalate_To_End</bpmn:incoming></bpmn:endEvent>
-  <bpmn:exclusiveGateway id="Gateway_ReturnRequired" name="Retour physique requis ?" default="Flow_ReturnRequired_Yes">
-    <bpmn:incoming>Flow_Validate_To_ReturnRequired</bpmn:incoming><bpmn:outgoing>Flow_ReturnRequired_Yes</bpmn:outgoing><bpmn:outgoing>Flow_ReturnRequired_No</bpmn:outgoing>
-  </bpmn:exclusiveGateway>
-  <bpmn:serviceTask id="Task_SendReturnInstructions" name="Envoyer les instructions de retour">
-    <bpmn:extensionElements><zeebe:taskDefinition type="shein-agent" retries="3"/><zeebe:taskHeaders><zeebe:header key="operation" value="send-return-instructions"/></zeebe:taskHeaders></bpmn:extensionElements>
-    <bpmn:incoming>Flow_ReturnRequired_Yes</bpmn:incoming><bpmn:outgoing>Flow_Instructions_To_Receipt</bpmn:outgoing>
-  </bpmn:serviceTask>
-  <bpmn:userTask id="Task_ConfirmReceipt" name="Confirmer la réception du vêtement">
-    <bpmn:extensionElements>
-      <zeebe:userTask />
-      <zeebe:formDefinition formId="form-reception-produit" />
-    </bpmn:extensionElements>
-    <bpmn:incoming>Flow_Instructions_To_Receipt</bpmn:incoming><bpmn:outgoing>Flow_Receipt_To_Inspect</bpmn:outgoing>
-  </bpmn:userTask>
-  <bpmn:userTask id="Task_InspectProduct" name="Inspecter l'état, les étiquettes et la conformité">
-    <bpmn:extensionElements>
-      <zeebe:userTask />
-      <zeebe:formDefinition formId="form-inspection-produit" />
-    </bpmn:extensionElements>
-    <bpmn:incoming>Flow_Receipt_To_Inspect</bpmn:incoming><bpmn:outgoing>Flow_Inspect_To_Consistent</bpmn:outgoing>
-  </bpmn:userTask>
-  <bpmn:exclusiveGateway id="Gateway_ProductConsistent" name="Contrôle qualité validé ?" default="Flow_Consistent_No">
-    <bpmn:incoming>Flow_Inspect_To_Consistent</bpmn:incoming><bpmn:outgoing>Flow_Consistent_Yes</bpmn:outgoing><bpmn:outgoing>Flow_Consistent_No</bpmn:outgoing>
-  </bpmn:exclusiveGateway>
-  <bpmn:userTask id="Task_ReevaluateResolution" name="Réévaluer le dossier après inspection">
-    <bpmn:extensionElements>
-      <zeebe:userTask />
-      <zeebe:formDefinition formId="form-reanalyse-apres-inspection" />
-    </bpmn:extensionElements>
-    <bpmn:incoming>Flow_Consistent_No</bpmn:incoming><bpmn:outgoing>Flow_Reevaluate_To_HandleEnd</bpmn:outgoing>
-  </bpmn:userTask>
-  <bpmn:endEvent id="End_Handle"><bpmn:incoming>Flow_ReturnRequired_No</bpmn:incoming><bpmn:incoming>Flow_Consistent_Yes</bpmn:incoming><bpmn:incoming>Flow_Reevaluate_To_HandleEnd</bpmn:incoming></bpmn:endEvent>
-  <bpmn:sequenceFlow id="Flow_HandleStart_To_Validate" sourceRef="Start_Handle" targetRef="Task_ValidateSolution"/>
-  <bpmn:sequenceFlow id="Flow_Validate_To_ReturnRequired" sourceRef="Task_ValidateSolution" targetRef="Gateway_ReturnRequired"/>
-  <bpmn:sequenceFlow id="Flow_SLA_To_Escalate" sourceRef="Boundary_SLA24h" targetRef="Task_EscalateSupervisor"/>
-  <bpmn:sequenceFlow id="Flow_Escalate_To_End" sourceRef="Task_EscalateSupervisor" targetRef="End_Escalation"/>
-  <bpmn:sequenceFlow id="Flow_ReturnRequired_Yes" name="Oui" sourceRef="Gateway_ReturnRequired" targetRef="Task_SendReturnInstructions"><bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">= returnRequired = true</bpmn:conditionExpression></bpmn:sequenceFlow>
-  <bpmn:sequenceFlow id="Flow_ReturnRequired_No" name="Non / remboursement sans retour" sourceRef="Gateway_ReturnRequired" targetRef="End_Handle"/>
-  <bpmn:sequenceFlow id="Flow_Instructions_To_Receipt" sourceRef="Task_SendReturnInstructions" targetRef="Task_ConfirmReceipt"/>
-  <bpmn:sequenceFlow id="Flow_Receipt_To_Inspect" sourceRef="Task_ConfirmReceipt" targetRef="Task_InspectProduct"/>
-  <bpmn:sequenceFlow id="Flow_Inspect_To_Consistent" sourceRef="Task_InspectProduct" targetRef="Gateway_ProductConsistent"/>
-  <bpmn:sequenceFlow id="Flow_Consistent_Yes" name="Oui" sourceRef="Gateway_ProductConsistent" targetRef="End_Handle"><bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">= qualityCheckPassed = true</bpmn:conditionExpression></bpmn:sequenceFlow>
-  <bpmn:sequenceFlow id="Flow_Consistent_No" name="Non / réévaluer" sourceRef="Gateway_ProductConsistent" targetRef="Task_ReevaluateResolution"/>
-  <bpmn:sequenceFlow id="Flow_Reevaluate_To_HandleEnd" sourceRef="Task_ReevaluateResolution" targetRef="End_Handle"/>
-</bpmn:subProcess>
+
+    <!-- ========== Traitement du retour autorisé (human-in-the-loop + contrôle qualité) ========== -->
+    <bpmn:subProcess id="SubProcess_HandleAuthorizedReturn" name="Traiter le retour autorisé - human-in-the-loop + contrôle qualité">
+      <bpmn:incoming>Flow_Eligible_Yes</bpmn:incoming>
+      <bpmn:outgoing>Flow_Handle_To_Resolve</bpmn:outgoing>
+      <bpmn:startEvent id="Start_Handle">
+        <bpmn:outgoing>Flow_HandleStart_To_Validate</bpmn:outgoing>
+      </bpmn:startEvent>
+      <bpmn:userTask id="Task_ValidateSolution" name="Valider la solution proposée par l'IA">
+        <bpmn:documentation>L'agent SAV consulte les faits et les sources, confirme l'éligibilité déterministe et décide si un retour physique est requis. Le mode de remboursement est confirmé dans une tâche distincte après l'inspection, si elle a lieu.</bpmn:documentation>
+        <bpmn:extensionElements>
+          <zeebe:userTask />
+          <zeebe:formDefinition formId="form-validation-sav" />
+        </bpmn:extensionElements>
+        <bpmn:incoming>Flow_HandleStart_To_Validate</bpmn:incoming>
+        <bpmn:outgoing>Flow_Validate_To_ReturnRequired</bpmn:outgoing>
+      </bpmn:userTask>
+      <bpmn:boundaryEvent id="Boundary_SLA24h" name="SLA 24 h dépassé" cancelActivity="false" attachedToRef="Task_ValidateSolution">
+        <bpmn:outgoing>Flow_SLA_To_Escalate</bpmn:outgoing>
+        <bpmn:timerEventDefinition>
+          <bpmn:timeDuration xsi:type="bpmn:tFormalExpression">PT24H</bpmn:timeDuration>
+        </bpmn:timerEventDefinition>
+      </bpmn:boundaryEvent>
+      <bpmn:userTask id="Task_EscalateSupervisor" name="Escalader / relancer le superviseur">
+        <bpmn:extensionElements>
+          <zeebe:userTask />
+          <zeebe:formDefinition formId="form-escalade-sav" />
+        </bpmn:extensionElements>
+        <bpmn:incoming>Flow_SLA_To_Escalate</bpmn:incoming>
+        <bpmn:outgoing>Flow_Escalate_To_End</bpmn:outgoing>
+      </bpmn:userTask>
+      <bpmn:endEvent id="End_Escalation">
+        <bpmn:incoming>Flow_Escalate_To_End</bpmn:incoming>
+      </bpmn:endEvent>
+      <bpmn:exclusiveGateway id="Gateway_ReturnRequired" name="Retour physique requis ?" default="Flow_ReturnRequired_Yes">
+        <bpmn:incoming>Flow_Validate_To_ReturnRequired</bpmn:incoming>
+        <bpmn:outgoing>Flow_ReturnRequired_Yes</bpmn:outgoing>
+        <bpmn:outgoing>Flow_ReturnRequired_No</bpmn:outgoing>
+      </bpmn:exclusiveGateway>
+      <bpmn:serviceTask id="Task_SendReturnInstructions" name="Envoyer les instructions de retour">
+        <bpmn:extensionElements>
+          <zeebe:taskDefinition type="shein-agent" retries="3" />
+          <zeebe:taskHeaders>
+            <zeebe:header key="operation" value="send-return-instructions" />
+          </zeebe:taskHeaders>
+        </bpmn:extensionElements>
+        <bpmn:incoming>Flow_ReturnRequired_Yes</bpmn:incoming>
+        <bpmn:outgoing>Flow_Instructions_To_Receipt</bpmn:outgoing>
+      </bpmn:serviceTask>
+      <bpmn:userTask id="Task_ConfirmReceipt" name="Confirmer la réception du vêtement">
+        <bpmn:extensionElements>
+          <zeebe:userTask />
+          <zeebe:formDefinition formId="form-reception-produit" />
+        </bpmn:extensionElements>
+        <bpmn:incoming>Flow_Instructions_To_Receipt</bpmn:incoming>
+        <bpmn:outgoing>Flow_Receipt_To_Inspect</bpmn:outgoing>
+      </bpmn:userTask>
+      <bpmn:userTask id="Task_InspectProduct" name="Inspecter l'état, les étiquettes et la conformité">
+        <bpmn:extensionElements>
+          <zeebe:userTask />
+          <zeebe:formDefinition formId="form-inspection-produit" />
+        </bpmn:extensionElements>
+        <bpmn:incoming>Flow_Receipt_To_Inspect</bpmn:incoming>
+        <bpmn:outgoing>Flow_Inspect_To_Consistent</bpmn:outgoing>
+      </bpmn:userTask>
+      <bpmn:exclusiveGateway id="Gateway_ProductConsistent" name="Contrôle qualité validé ?" default="Flow_Consistent_No">
+        <bpmn:incoming>Flow_Inspect_To_Consistent</bpmn:incoming>
+        <bpmn:outgoing>Flow_Consistent_Yes</bpmn:outgoing>
+        <bpmn:outgoing>Flow_Consistent_No</bpmn:outgoing>
+      </bpmn:exclusiveGateway>
+      <bpmn:userTask id="Task_ReevaluateResolution" name="Réévaluer le dossier après inspection">
+        <bpmn:extensionElements>
+          <zeebe:userTask />
+          <zeebe:formDefinition formId="form-reanalyse-apres-inspection" />
+        </bpmn:extensionElements>
+        <bpmn:incoming>Flow_Consistent_No</bpmn:incoming>
+        <bpmn:outgoing>Flow_Reevaluate_To_HandleEnd</bpmn:outgoing>
+      </bpmn:userTask>
+      <bpmn:endEvent id="End_Handle">
+        <bpmn:incoming>Flow_ReturnRequired_No</bpmn:incoming>
+        <bpmn:incoming>Flow_Consistent_Yes</bpmn:incoming>
+        <bpmn:incoming>Flow_Reevaluate_To_HandleEnd</bpmn:incoming>
+      </bpmn:endEvent>
+      <bpmn:sequenceFlow id="Flow_HandleStart_To_Validate" sourceRef="Start_Handle" targetRef="Task_ValidateSolution" />
+      <bpmn:sequenceFlow id="Flow_Validate_To_ReturnRequired" sourceRef="Task_ValidateSolution" targetRef="Gateway_ReturnRequired" />
+      <bpmn:sequenceFlow id="Flow_SLA_To_Escalate" sourceRef="Boundary_SLA24h" targetRef="Task_EscalateSupervisor" />
+      <bpmn:sequenceFlow id="Flow_Escalate_To_End" sourceRef="Task_EscalateSupervisor" targetRef="End_Escalation" />
+      <bpmn:sequenceFlow id="Flow_ReturnRequired_Yes" name="Oui (par défaut)" sourceRef="Gateway_ReturnRequired" targetRef="Task_SendReturnInstructions" />
+      <bpmn:sequenceFlow id="Flow_ReturnRequired_No" name="Non / remboursement sans retour" sourceRef="Gateway_ReturnRequired" targetRef="End_Handle">
+        <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">= returnRequired = false</bpmn:conditionExpression>
+      </bpmn:sequenceFlow>
+      <bpmn:sequenceFlow id="Flow_Instructions_To_Receipt" sourceRef="Task_SendReturnInstructions" targetRef="Task_ConfirmReceipt" />
+      <bpmn:sequenceFlow id="Flow_Receipt_To_Inspect" sourceRef="Task_ConfirmReceipt" targetRef="Task_InspectProduct" />
+      <bpmn:sequenceFlow id="Flow_Inspect_To_Consistent" sourceRef="Task_InspectProduct" targetRef="Gateway_ProductConsistent" />
+      <bpmn:sequenceFlow id="Flow_Consistent_Yes" name="Oui" sourceRef="Gateway_ProductConsistent" targetRef="End_Handle">
+        <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">= inspection_result = "conforming"</bpmn:conditionExpression>
+      </bpmn:sequenceFlow>
+      <bpmn:sequenceFlow id="Flow_Consistent_No" name="Non / réévaluer" sourceRef="Gateway_ProductConsistent" targetRef="Task_ReevaluateResolution" />
+      <bpmn:sequenceFlow id="Flow_Reevaluate_To_HandleEnd" sourceRef="Task_ReevaluateResolution" targetRef="End_Handle" />
+    </bpmn:subProcess>
+
+    <!-- ========== Résolution : remboursement / exception SAV ========== -->
     <bpmn:subProcess id="SubProcess_ResolveCase" name="Résoudre le dossier - remboursement / exception SAV">
       <bpmn:incoming>Flow_Handle_To_Resolve</bpmn:incoming>
       <bpmn:outgoing>Flow_Resolve_To_FinalResponse</bpmn:outgoing>
@@ -228,30 +355,39 @@
       <bpmn:exclusiveGateway id="Gateway_ResolutionType" name="Mode de remboursement / traitement ?" default="Flow_Resolution_Manual">
         <bpmn:incoming>Flow_Decide_To_Type</bpmn:incoming>
         <bpmn:outgoing>Flow_Resolution_Refund</bpmn:outgoing>
-        <bpmn:outgoing>Flow_Resolution_Exchange</bpmn:outgoing>
-        <bpmn:outgoing>Flow_Resolution_Repair</bpmn:outgoing>
+        <bpmn:outgoing>Flow_Resolution_OriginalPayment</bpmn:outgoing>
+        <bpmn:outgoing>Flow_Resolution_Returnless</bpmn:outgoing>
         <bpmn:outgoing>Flow_Resolution_Manual</bpmn:outgoing>
       </bpmn:exclusiveGateway>
       <bpmn:serviceTask id="Task_ExecuteRefund" name="Rembourser sur portefeuille SHEIN">
         <bpmn:extensionElements>
-          <zeebe:taskDefinition type="shein-agent" retries="3"/><zeebe:taskHeaders><zeebe:header key="operation" value="refund-shein-wallet"/></zeebe:taskHeaders>
+          <zeebe:taskDefinition type="shein-agent" retries="3" />
+          <zeebe:taskHeaders>
+            <zeebe:header key="operation" value="refund-shein-wallet" />
+          </zeebe:taskHeaders>
         </bpmn:extensionElements>
         <bpmn:incoming>Flow_Resolution_Refund</bpmn:incoming>
         <bpmn:outgoing>Flow_Refund_To_Merge</bpmn:outgoing>
       </bpmn:serviceTask>
-      <bpmn:serviceTask id="Task_ExecuteExchange" name="Rembourser sur moyen de paiement initial">
+      <bpmn:serviceTask id="Task_RefundOriginalPayment" name="Enregistrer le remboursement sur le moyen initial">
         <bpmn:extensionElements>
-          <zeebe:taskDefinition type="shein-agent" retries="3"/><zeebe:taskHeaders><zeebe:header key="operation" value="refund-original-payment"/></zeebe:taskHeaders>
+          <zeebe:taskDefinition type="shein-agent" retries="3" />
+          <zeebe:taskHeaders>
+            <zeebe:header key="operation" value="refund-original-payment" />
+          </zeebe:taskHeaders>
         </bpmn:extensionElements>
-        <bpmn:incoming>Flow_Resolution_Exchange</bpmn:incoming>
-        <bpmn:outgoing>Flow_Exchange_To_Merge</bpmn:outgoing>
+        <bpmn:incoming>Flow_Resolution_OriginalPayment</bpmn:incoming>
+        <bpmn:outgoing>Flow_OriginalPayment_To_Merge</bpmn:outgoing>
       </bpmn:serviceTask>
-      <bpmn:serviceTask id="Task_ExecuteRepair" name="Remboursement sans retour">
+      <bpmn:serviceTask id="Task_RefundWithoutReturn" name="Enregistrer le remboursement sans retour physique">
         <bpmn:extensionElements>
-          <zeebe:taskDefinition type="shein-agent" retries="3"/><zeebe:taskHeaders><zeebe:header key="operation" value="refund-without-return"/></zeebe:taskHeaders>
+          <zeebe:taskDefinition type="shein-agent" retries="3" />
+          <zeebe:taskHeaders>
+            <zeebe:header key="operation" value="refund-without-return" />
+          </zeebe:taskHeaders>
         </bpmn:extensionElements>
-        <bpmn:incoming>Flow_Resolution_Repair</bpmn:incoming>
-        <bpmn:outgoing>Flow_Repair_To_Merge</bpmn:outgoing>
+        <bpmn:incoming>Flow_Resolution_Returnless</bpmn:incoming>
+        <bpmn:outgoing>Flow_Returnless_To_Merge</bpmn:outgoing>
       </bpmn:serviceTask>
       <bpmn:userTask id="Task_ManualResolution" name="Traiter une exception SAV manuellement">
         <bpmn:extensionElements>
@@ -263,42 +399,50 @@
       </bpmn:userTask>
       <bpmn:exclusiveGateway id="Gateway_ResolutionMerge">
         <bpmn:incoming>Flow_Refund_To_Merge</bpmn:incoming>
-        <bpmn:incoming>Flow_Exchange_To_Merge</bpmn:incoming>
-        <bpmn:incoming>Flow_Repair_To_Merge</bpmn:incoming>
+        <bpmn:incoming>Flow_OriginalPayment_To_Merge</bpmn:incoming>
+        <bpmn:incoming>Flow_Returnless_To_Merge</bpmn:incoming>
         <bpmn:incoming>Flow_ManualResolution_To_Merge</bpmn:incoming>
         <bpmn:outgoing>Flow_Merge_To_ResolveEnd</bpmn:outgoing>
       </bpmn:exclusiveGateway>
       <bpmn:endEvent id="End_Resolve">
         <bpmn:incoming>Flow_Merge_To_ResolveEnd</bpmn:incoming>
       </bpmn:endEvent>
-      <bpmn:sequenceFlow id="Flow_ResolveStart_To_Decide" sourceRef="Start_Resolve" targetRef="Task_DecideResolution"/>
-      <bpmn:sequenceFlow id="Flow_Decide_To_Type" sourceRef="Task_DecideResolution" targetRef="Gateway_ResolutionType"/>
+      <bpmn:sequenceFlow id="Flow_ResolveStart_To_Decide" sourceRef="Start_Resolve" targetRef="Task_DecideResolution" />
+      <bpmn:sequenceFlow id="Flow_Decide_To_Type" sourceRef="Task_DecideResolution" targetRef="Gateway_ResolutionType" />
       <bpmn:sequenceFlow id="Flow_Resolution_Refund" name="Portefeuille SHEIN" sourceRef="Gateway_ResolutionType" targetRef="Task_ExecuteRefund">
-        <bpmn:conditionExpression xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="bpmn:tFormalExpression">= refundMethod = "shein_wallet"</bpmn:conditionExpression>
+        <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">= refundMethod = "shein_wallet"</bpmn:conditionExpression>
       </bpmn:sequenceFlow>
-      <bpmn:sequenceFlow id="Flow_Resolution_Exchange" name="Paiement initial" sourceRef="Gateway_ResolutionType" targetRef="Task_ExecuteExchange">
-        <bpmn:conditionExpression xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="bpmn:tFormalExpression">= refundMethod = "original_payment"</bpmn:conditionExpression>
+      <bpmn:sequenceFlow id="Flow_Resolution_OriginalPayment" name="Paiement initial" sourceRef="Gateway_ResolutionType" targetRef="Task_RefundOriginalPayment">
+        <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">= refundMethod = "original_payment"</bpmn:conditionExpression>
       </bpmn:sequenceFlow>
-      <bpmn:sequenceFlow id="Flow_Resolution_Repair" name="Sans retour" sourceRef="Gateway_ResolutionType" targetRef="Task_ExecuteRepair">
-        <bpmn:conditionExpression xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="bpmn:tFormalExpression">= refundMethod = "returnless"</bpmn:conditionExpression>
+      <bpmn:sequenceFlow id="Flow_Resolution_Returnless" name="Sans retour physique" sourceRef="Gateway_ResolutionType" targetRef="Task_RefundWithoutReturn">
+        <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">= returnRequired = false and refundMethod = "returnless"</bpmn:conditionExpression>
       </bpmn:sequenceFlow>
-      <bpmn:sequenceFlow id="Flow_Resolution_Manual" name="Exception / fallback" sourceRef="Gateway_ResolutionType" targetRef="Task_ManualResolution"/>
-      <bpmn:sequenceFlow id="Flow_Refund_To_Merge" sourceRef="Task_ExecuteRefund" targetRef="Gateway_ResolutionMerge"/>
-      <bpmn:sequenceFlow id="Flow_Exchange_To_Merge" sourceRef="Task_ExecuteExchange" targetRef="Gateway_ResolutionMerge"/>
-      <bpmn:sequenceFlow id="Flow_Repair_To_Merge" sourceRef="Task_ExecuteRepair" targetRef="Gateway_ResolutionMerge"/>
-      <bpmn:sequenceFlow id="Flow_ManualResolution_To_Merge" sourceRef="Task_ManualResolution" targetRef="Gateway_ResolutionMerge"/>
-      <bpmn:sequenceFlow id="Flow_Merge_To_ResolveEnd" sourceRef="Gateway_ResolutionMerge" targetRef="End_Resolve"/>
+      <bpmn:sequenceFlow id="Flow_Resolution_Manual" name="Exception / fallback" sourceRef="Gateway_ResolutionType" targetRef="Task_ManualResolution" />
+      <bpmn:sequenceFlow id="Flow_Refund_To_Merge" sourceRef="Task_ExecuteRefund" targetRef="Gateway_ResolutionMerge" />
+      <bpmn:sequenceFlow id="Flow_OriginalPayment_To_Merge" sourceRef="Task_RefundOriginalPayment" targetRef="Gateway_ResolutionMerge" />
+      <bpmn:sequenceFlow id="Flow_Returnless_To_Merge" sourceRef="Task_RefundWithoutReturn" targetRef="Gateway_ResolutionMerge" />
+      <bpmn:sequenceFlow id="Flow_ManualResolution_To_Merge" sourceRef="Task_ManualResolution" targetRef="Gateway_ResolutionMerge" />
+      <bpmn:sequenceFlow id="Flow_Merge_To_ResolveEnd" sourceRef="Gateway_ResolutionMerge" targetRef="End_Resolve" />
     </bpmn:subProcess>
+
+    <!-- ========== Réponse finale, notification, clôture ========== -->
     <bpmn:serviceTask id="Task_GenerateFinalResponse" name="Générer la réponse finale personnalisée (LLM)">
       <bpmn:extensionElements>
-        <zeebe:taskDefinition type="shein-agent" retries="2"/><zeebe:taskHeaders><zeebe:header key="operation" value="generate-grounded-final-response"/></zeebe:taskHeaders>
+        <zeebe:taskDefinition type="shein-agent" retries="2" />
+        <zeebe:taskHeaders>
+          <zeebe:header key="operation" value="generate-grounded-final-response" />
+        </zeebe:taskHeaders>
       </bpmn:extensionElements>
       <bpmn:incoming>Flow_Resolve_To_FinalResponse</bpmn:incoming>
       <bpmn:outgoing>Flow_FinalResponse_To_Notify</bpmn:outgoing>
     </bpmn:serviceTask>
     <bpmn:serviceTask id="Task_NotifyClient" name="Notifier le client">
       <bpmn:extensionElements>
-        <zeebe:taskDefinition type="shein-agent" retries="3"/><zeebe:taskHeaders><zeebe:header key="operation" value="notify-client"/></zeebe:taskHeaders>
+        <zeebe:taskDefinition type="shein-agent" retries="3" />
+        <zeebe:taskHeaders>
+          <zeebe:header key="operation" value="notify-client" />
+        </zeebe:taskHeaders>
       </bpmn:extensionElements>
       <bpmn:incoming>Flow_FinalResponse_To_Notify</bpmn:incoming>
       <bpmn:outgoing>Flow_Notify_To_Close</bpmn:outgoing>
@@ -314,436 +458,509 @@
     <bpmn:endEvent id="End_Completed" name="Dossier terminé">
       <bpmn:incoming>Flow_Close_To_End</bpmn:incoming>
     </bpmn:endEvent>
-    <bpmn:association id="Association_RAG_SheinAgent" sourceRef="Task_RetrievePolicyRAG" targetRef="TextAnnotation_SheinAgent" associationDirection="None"/>
-    <bpmn:sequenceFlow id="Flow_Start_To_Submit" sourceRef="StartEvent_ReturnRequest" targetRef="Task_SubmitReturn"/>
-    <bpmn:sequenceFlow id="Flow_Submit_To_Fetch" sourceRef="Task_SubmitReturn" targetRef="Task_FetchOrder"/>
-    <bpmn:sequenceFlow id="Flow_Fetch_To_OrderFound" sourceRef="Task_FetchOrder" targetRef="Gateway_OrderFound"/>
+
+    <bpmn:association id="Association_RAG_SheinAgent" associationDirection="None" sourceRef="Task_RetrievePolicyRAG" targetRef="TextAnnotation_SheinAgent" />
+
+    <!-- ========== Flux principaux ========== -->
+    <bpmn:sequenceFlow id="Flow_Start_To_Submit" sourceRef="StartEvent_ReturnRequest" targetRef="Task_SubmitReturn" />
+    <bpmn:sequenceFlow id="Flow_Submit_To_Fetch" sourceRef="Task_SubmitReturn" targetRef="Task_FetchOrder" />
+    <bpmn:sequenceFlow id="Flow_Fetch_To_OrderFound" sourceRef="Task_FetchOrder" targetRef="Gateway_OrderFound" />
     <bpmn:sequenceFlow id="Flow_OrderFound_Yes" name="Oui" sourceRef="Gateway_OrderFound" targetRef="Task_CheckMinimumInfo">
-      <bpmn:conditionExpression xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="bpmn:tFormalExpression">= orderFound = true</bpmn:conditionExpression>
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">= orderFound = true</bpmn:conditionExpression>
     </bpmn:sequenceFlow>
-    <bpmn:sequenceFlow id="Flow_OrderFound_No" name="Non" sourceRef="Gateway_OrderFound" targetRef="Task_RequestCorrection"/>
-    <bpmn:sequenceFlow id="Flow_RequestCorrection_To_CorrectionProvided" sourceRef="Task_RequestCorrection" targetRef="Gateway_CorrectionProvided"/>
+    <bpmn:sequenceFlow id="Flow_OrderFound_No" name="Non" sourceRef="Gateway_OrderFound" targetRef="Task_RequestCorrection" />
+    <bpmn:sequenceFlow id="Flow_RequestCorrection_To_CorrectionProvided" sourceRef="Task_RequestCorrection" targetRef="Gateway_CorrectionProvided" />
     <bpmn:sequenceFlow id="Flow_Correction_Yes" name="Oui" sourceRef="Gateway_CorrectionProvided" targetRef="Task_FetchOrder">
-      <bpmn:conditionExpression xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="bpmn:tFormalExpression">= correctionProvided = true</bpmn:conditionExpression>
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">= correctionProvided = true</bpmn:conditionExpression>
     </bpmn:sequenceFlow>
-    <bpmn:sequenceFlow id="Flow_Correction_No" name="Non" sourceRef="Gateway_CorrectionProvided" targetRef="End_OrderNotFound"/>
-    <bpmn:sequenceFlow id="Flow_Check_To_InfoComplete" sourceRef="Task_CheckMinimumInfo" targetRef="Gateway_InfoComplete"/>
+    <bpmn:sequenceFlow id="Flow_Correction_No" name="Non" sourceRef="Gateway_CorrectionProvided" targetRef="Task_NotifyOrderNotFound" />
+    <bpmn:sequenceFlow id="Flow_OrderNotFound_To_End" sourceRef="Task_NotifyOrderNotFound" targetRef="End_OrderNotFound" />
+    <bpmn:sequenceFlow id="Flow_Check_To_InfoComplete" sourceRef="Task_CheckMinimumInfo" targetRef="Gateway_InfoComplete" />
     <bpmn:sequenceFlow id="Flow_InfoComplete_Yes" name="Oui" sourceRef="Gateway_InfoComplete" targetRef="SubProcess_EvaluateRequest">
-      <bpmn:conditionExpression xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="bpmn:tFormalExpression">= infoComplete = true</bpmn:conditionExpression>
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">= infoComplete = true</bpmn:conditionExpression>
     </bpmn:sequenceFlow>
-    <bpmn:sequenceFlow id="Flow_InfoComplete_No" name="Non" sourceRef="Gateway_InfoComplete" targetRef="Task_RequestAdditionalInfo"/>
-    <bpmn:sequenceFlow id="Flow_AdditionalInfo_To_Check" name="Complément reçu" sourceRef="Task_RequestAdditionalInfo" targetRef="Task_CheckMinimumInfo"/>
-    <bpmn:sequenceFlow id="Flow_InfoTimeout_To_End" sourceRef="Boundary_InfoTimeout" targetRef="End_Incomplete"/>
-    <bpmn:sequenceFlow id="Flow_Evaluate_To_Eligible" sourceRef="SubProcess_EvaluateRequest" targetRef="Gateway_Eligible"/>
+    <bpmn:sequenceFlow id="Flow_InfoComplete_No" name="Non" sourceRef="Gateway_InfoComplete" targetRef="Task_RequestAdditionalInfo" />
+    <bpmn:sequenceFlow id="Flow_RequestInfo_To_ReceiveInfo" sourceRef="Task_RequestAdditionalInfo" targetRef="Task_ReceiveAdditionalInfo" />
+    <bpmn:sequenceFlow id="Flow_AdditionalInfo_To_Check" name="Complément reçu" sourceRef="Task_ReceiveAdditionalInfo" targetRef="Task_CheckMinimumInfo" />
+    <bpmn:sequenceFlow id="Flow_InfoTimeout_To_Notify" sourceRef="Boundary_InfoTimeout" targetRef="Task_NotifyIncomplete" />
+    <bpmn:sequenceFlow id="Flow_NotifyIncomplete_To_End" sourceRef="Task_NotifyIncomplete" targetRef="End_Incomplete" />
+    <bpmn:sequenceFlow id="Flow_Evaluate_To_Eligible" sourceRef="SubProcess_EvaluateRequest" targetRef="Gateway_Eligible" />
     <bpmn:sequenceFlow id="Flow_Eligible_Yes" name="Oui" sourceRef="Gateway_Eligible" targetRef="SubProcess_HandleAuthorizedReturn">
-      <bpmn:conditionExpression xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="bpmn:tFormalExpression">= eligibility = true</bpmn:conditionExpression>
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">= eligibility = true</bpmn:conditionExpression>
     </bpmn:sequenceFlow>
-    <bpmn:sequenceFlow id="Flow_Eligible_No" name="Non" sourceRef="Gateway_Eligible" targetRef="Task_GenerateRefusal"/>
-    <bpmn:sequenceFlow id="Flow_Refusal_To_Notify" sourceRef="Task_GenerateRefusal" targetRef="Task_NotifyRefusal"/>
-    <bpmn:sequenceFlow id="Flow_NotifyRefusal_To_End" sourceRef="Task_NotifyRefusal" targetRef="End_Refused"/>
-    <bpmn:sequenceFlow id="Flow_Handle_To_Resolve" sourceRef="SubProcess_HandleAuthorizedReturn" targetRef="SubProcess_ResolveCase"/>
-    <bpmn:sequenceFlow id="Flow_Resolve_To_FinalResponse" sourceRef="SubProcess_ResolveCase" targetRef="Task_GenerateFinalResponse"/>
-    <bpmn:sequenceFlow id="Flow_FinalResponse_To_Notify" sourceRef="Task_GenerateFinalResponse" targetRef="Task_NotifyClient"/>
-    <bpmn:sequenceFlow id="Flow_Notify_To_Close" sourceRef="Task_NotifyClient" targetRef="Task_CloseCase"/>
-    <bpmn:sequenceFlow id="Flow_Close_To_End" sourceRef="Task_CloseCase" targetRef="End_Completed"/>
+    <bpmn:sequenceFlow id="Flow_Eligible_No" name="Non" sourceRef="Gateway_Eligible" targetRef="Task_GenerateRefusal" />
+    <bpmn:sequenceFlow id="Flow_Refusal_To_Notify" sourceRef="Task_GenerateRefusal" targetRef="Task_NotifyRefusal" />
+    <bpmn:sequenceFlow id="Flow_NotifyRefusal_To_End" sourceRef="Task_NotifyRefusal" targetRef="End_Refused" />
+    <bpmn:sequenceFlow id="Flow_Handle_To_Resolve" sourceRef="SubProcess_HandleAuthorizedReturn" targetRef="SubProcess_ResolveCase" />
+    <bpmn:sequenceFlow id="Flow_Resolve_To_FinalResponse" sourceRef="SubProcess_ResolveCase" targetRef="Task_GenerateFinalResponse" />
+    <bpmn:sequenceFlow id="Flow_FinalResponse_To_Notify" sourceRef="Task_GenerateFinalResponse" targetRef="Task_NotifyClient" />
+    <bpmn:sequenceFlow id="Flow_Notify_To_Close" sourceRef="Task_NotifyClient" targetRef="Task_CloseCase" />
+    <bpmn:sequenceFlow id="Flow_Close_To_End" sourceRef="Task_CloseCase" targetRef="End_Completed" />
   </bpmn:process>
+
   <bpmndi:BPMNDiagram id="BPMNDiagram_ReturnFlowAI">
     <bpmndi:BPMNPlane id="BPMNPlane_ReturnFlowAI" bpmnElement="returnflow-ai-shein-rag">
+
+      <!-- Ligne principale -->
       <bpmndi:BPMNShape id="Shape_Start" bpmnElement="StartEvent_ReturnRequest">
-        <dc:Bounds x="120" y="330" width="36" height="36"/>
+        <dc:Bounds x="120" y="330" width="36" height="36" />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Shape_Submit" bpmnElement="Task_SubmitReturn">
-        <dc:Bounds x="210" y="298" width="130" height="100"/>
+        <dc:Bounds x="210" y="298" width="130" height="100" />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Shape_Fetch" bpmnElement="Task_FetchOrder">
-        <dc:Bounds x="400" y="298" width="150" height="100"/>
+        <dc:Bounds x="400" y="298" width="150" height="100" />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Shape_OrderFound" bpmnElement="Gateway_OrderFound" isMarkerVisible="true">
-        <dc:Bounds x="610" y="323" width="50" height="50"/>
-      </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Shape_RequestCorrection" bpmnElement="Task_RequestCorrection">
-        <dc:Bounds x="600" y="470" width="150" height="100"/>
-      </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Shape_CorrectionProvided" bpmnElement="Gateway_CorrectionProvided" isMarkerVisible="true">
-        <dc:Bounds x="805" y="495" width="50" height="50"/>
-      </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Shape_EndOrderNotFound" bpmnElement="End_OrderNotFound">
-        <dc:Bounds x="925" y="502" width="36" height="36"/>
+        <dc:Bounds x="610" y="323" width="50" height="50" />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Shape_CheckInfo" bpmnElement="Task_CheckMinimumInfo">
-        <dc:Bounds x="730" y="298" width="150" height="100"/>
+        <dc:Bounds x="730" y="298" width="150" height="100" />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Shape_InfoComplete" bpmnElement="Gateway_InfoComplete" isMarkerVisible="true">
-        <dc:Bounds x="940" y="323" width="50" height="50"/>
+        <dc:Bounds x="940" y="323" width="50" height="50" />
       </bpmndi:BPMNShape>
+
+      <!-- Branche correction (en bas) -->
+      <bpmndi:BPMNShape id="Shape_RequestCorrection" bpmnElement="Task_RequestCorrection">
+        <dc:Bounds x="560" y="470" width="150" height="100" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_CorrectionProvided" bpmnElement="Gateway_CorrectionProvided" isMarkerVisible="true">
+        <dc:Bounds x="760" y="495" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_NotifyOrderNotFound" bpmnElement="Task_NotifyOrderNotFound">
+        <dc:Bounds x="850" y="470" width="180" height="90" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_EndOrderNotFound" bpmnElement="End_OrderNotFound">
+        <dc:Bounds x="1080" y="497" width="36" height="36" />
+      </bpmndi:BPMNShape>
+
+      <!-- Branche complément d'information (en haut) -->
       <bpmndi:BPMNShape id="Shape_RequestAdditional" bpmnElement="Task_RequestAdditionalInfo">
-        <dc:Bounds x="920" y="470" width="170" height="100"/>
+        <dc:Bounds x="650" y="150" width="170" height="90" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_ReceiveAdditional" bpmnElement="Task_ReceiveAdditionalInfo">
+        <dc:Bounds x="890" y="150" width="150" height="100" />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Shape_InfoBoundary" bpmnElement="Boundary_InfoTimeout">
-        <dc:Bounds x="985" y="552" width="36" height="36"/>
+        <dc:Bounds x="947" y="232" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_NotifyIncomplete" bpmnElement="Task_NotifyIncomplete">
+        <dc:Bounds x="970" y="560" width="190" height="80" />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Shape_EndIncomplete" bpmnElement="End_Incomplete">
-        <dc:Bounds x="1135" y="555" width="36" height="36"/>
+        <dc:Bounds x="1200" y="582" width="36" height="36" />
       </bpmndi:BPMNShape>
+
+      <!-- Sous-processus Évaluation -->
       <bpmndi:BPMNShape id="Shape_SubEval" bpmnElement="SubProcess_EvaluateRequest" isExpanded="true">
-        <dc:Bounds x="1060" y="170" width="850" height="350"/>
+        <dc:Bounds x="1060" y="170" width="850" height="350" />
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Shape_Eligible" bpmnElement="Gateway_Eligible" isMarkerVisible="true">
-        <dc:Bounds x="1970" y="323" width="50" height="50"/>
-      </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Shape_GenerateRefusal" bpmnElement="Task_GenerateRefusal">
-        <dc:Bounds x="1945" y="520" width="160" height="90"/>
-      </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Shape_NotifyRefusal" bpmnElement="Task_NotifyRefusal">
-        <dc:Bounds x="2160" y="520" width="150" height="90"/>
-      </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Shape_EndRefused" bpmnElement="End_Refused">
-        <dc:Bounds x="2365" y="547" width="36" height="36"/>
-      </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Shape_SubHandle" bpmnElement="SubProcess_HandleAuthorizedReturn" isExpanded="true">
-        <dc:Bounds x="2080" y="120" width="1270" height="390"/>
-      </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Shape_SubResolve" bpmnElement="SubProcess_ResolveCase" isExpanded="true">
-        <dc:Bounds x="3420" y="120" width="1230" height="420"/>
-      </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Shape_ResolveStart" bpmnElement="Start_Resolve">
-        <dc:Bounds x="3460" y="310" width="36" height="36"/>
-      </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Shape_Decide" bpmnElement="Task_DecideResolution">
-        <dc:Bounds x="3540" y="278" width="170" height="100"/>
-      </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Shape_ResolutionType" bpmnElement="Gateway_ResolutionType" isMarkerVisible="true">
-        <dc:Bounds x="3770" y="303" width="50" height="50"/>
-      </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Shape_Refund" bpmnElement="Task_ExecuteRefund">
-        <dc:Bounds x="3880" y="150" width="180" height="80"/>
-      </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Shape_Exchange" bpmnElement="Task_ExecuteExchange">
-        <dc:Bounds x="3880" y="250" width="200" height="80"/>
-      </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Shape_Repair" bpmnElement="Task_ExecuteRepair">
-        <dc:Bounds x="3880" y="350" width="180" height="80"/>
-      </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Shape_ManualResolution" bpmnElement="Task_ManualResolution">
-        <dc:Bounds x="3880" y="450" width="190" height="70"/>
-      </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Shape_ResolutionMerge" bpmnElement="Gateway_ResolutionMerge" isMarkerVisible="true">
-        <dc:Bounds x="4180" y="303" width="50" height="50"/>
-      </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Shape_ResolveEnd" bpmnElement="End_Resolve">
-        <dc:Bounds x="4490" y="310" width="36" height="36"/>
-      </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Shape_FinalResponse" bpmnElement="Task_GenerateFinalResponse">
-        <dc:Bounds x="4710" y="298" width="170" height="100"/>
-      </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Shape_NotifyClient" bpmnElement="Task_NotifyClient">
-        <dc:Bounds x="4940" y="298" width="150" height="100"/>
-      </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Shape_CloseCase" bpmnElement="Task_CloseCase">
-        <dc:Bounds x="5150" y="298" width="150" height="100"/>
-      </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Shape_EndCompleted" bpmnElement="End_Completed">
-        <dc:Bounds x="5360" y="330" width="36" height="36"/>
-      </bpmndi:BPMNShape>
-      <bpmndi:BPMNEdge id="Edge_Start_Submit" bpmnElement="Flow_Start_To_Submit">
-        <di:waypoint x="156" y="348"/>
-        <di:waypoint x="210" y="348"/>
-      </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Edge_Submit_Fetch" bpmnElement="Flow_Submit_To_Fetch">
-        <di:waypoint x="340" y="348"/>
-        <di:waypoint x="400" y="348"/>
-      </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Edge_Fetch_OrderFound" bpmnElement="Flow_Fetch_To_OrderFound">
-        <di:waypoint x="550" y="348"/>
-        <di:waypoint x="610" y="348"/>
-      </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Edge_OrderYes" bpmnElement="Flow_OrderFound_Yes">
-        <di:waypoint x="660" y="348"/>
-        <di:waypoint x="730" y="348"/>
-      </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Edge_OrderNo" bpmnElement="Flow_OrderFound_No">
-        <di:waypoint x="635" y="373"/>
-        <di:waypoint x="635" y="470"/>
-      </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Edge_RequestCorrection_Gw" bpmnElement="Flow_RequestCorrection_To_CorrectionProvided">
-        <di:waypoint x="750" y="520"/>
-        <di:waypoint x="805" y="520"/>
-      </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Edge_CorrectionYes" bpmnElement="Flow_Correction_Yes">
-        <di:waypoint x="830" y="495"/>
-        <di:waypoint x="830" y="430"/>
-        <di:waypoint x="475" y="430"/>
-        <di:waypoint x="475" y="398"/>
-      </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Edge_CorrectionNo" bpmnElement="Flow_Correction_No">
-        <di:waypoint x="855" y="520"/>
-        <di:waypoint x="925" y="520"/>
-      </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Edge_Check_InfoGw" bpmnElement="Flow_Check_To_InfoComplete">
-        <di:waypoint x="880" y="348"/>
-        <di:waypoint x="940" y="348"/>
-      </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Edge_InfoYes" bpmnElement="Flow_InfoComplete_Yes">
-        <di:waypoint x="990" y="348"/>
-        <di:waypoint x="1060" y="348"/>
-      </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Edge_InfoNo" bpmnElement="Flow_InfoComplete_No">
-        <di:waypoint x="965" y="373"/>
-        <di:waypoint x="965" y="470"/>
-      </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Edge_Additional_Back" bpmnElement="Flow_AdditionalInfo_To_Check">
-        <di:waypoint x="920" y="520"/>
-        <di:waypoint x="805" y="520"/>
-        <di:waypoint x="805" y="398"/>
-      </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Edge_InfoTimeout" bpmnElement="Flow_InfoTimeout_To_End">
-        <di:waypoint x="1021" y="570"/>
-        <di:waypoint x="1135" y="573"/>
-      </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Edge_Evaluate_Eligible" bpmnElement="Flow_Evaluate_To_Eligible">
-        <di:waypoint x="1910" y="348"/>
-        <di:waypoint x="1970" y="348"/>
-      </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Edge_EligibleNo" bpmnElement="Flow_Eligible_No">
-        <di:waypoint x="1995" y="373"/>
-        <di:waypoint x="1995" y="520"/>
-      </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Edge_RefusalNotify" bpmnElement="Flow_Refusal_To_Notify">
-        <di:waypoint x="2105" y="565"/>
-        <di:waypoint x="2160" y="565"/>
-      </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Edge_NotifyRefEnd" bpmnElement="Flow_NotifyRefusal_To_End">
-        <di:waypoint x="2310" y="565"/>
-        <di:waypoint x="2365" y="565"/>
-      </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Edge_EligibleYes" bpmnElement="Flow_Eligible_Yes">
-        <di:waypoint x="2020" y="348"/>
-        <di:waypoint x="2080" y="348"/>
-      </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Edge_Handle_Resolve" bpmnElement="Flow_Handle_To_Resolve">
-        <di:waypoint x="3350" y="318"/>
-        <di:waypoint x="3420" y="318"/>
-      </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Edge_ResolveStart_Decide" bpmnElement="Flow_ResolveStart_To_Decide">
-        <di:waypoint x="3496" y="328"/>
-        <di:waypoint x="3540" y="328"/>
-      </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Edge_Decide_Type" bpmnElement="Flow_Decide_To_Type">
-        <di:waypoint x="3710" y="328"/>
-        <di:waypoint x="3770" y="328"/>
-      </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Edge_Refund" bpmnElement="Flow_Resolution_Refund">
-        <di:waypoint x="3795" y="303"/>
-        <di:waypoint x="3795" y="190"/>
-        <di:waypoint x="3880" y="190"/>
-      </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Edge_Exchange" bpmnElement="Flow_Resolution_Exchange">
-        <di:waypoint x="3820" y="328"/>
-        <di:waypoint x="3880" y="290"/>
-      </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Edge_Repair" bpmnElement="Flow_Resolution_Repair">
-        <di:waypoint x="3795" y="353"/>
-        <di:waypoint x="3795" y="390"/>
-        <di:waypoint x="3880" y="390"/>
-      </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Edge_ManualRes" bpmnElement="Flow_Resolution_Manual">
-        <di:waypoint x="3795" y="353"/>
-        <di:waypoint x="3795" y="485"/>
-        <di:waypoint x="3880" y="485"/>
-      </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Edge_Refund_Merge" bpmnElement="Flow_Refund_To_Merge">
-        <di:waypoint x="4040" y="190"/>
-        <di:waypoint x="4205" y="190"/>
-        <di:waypoint x="4205" y="303"/>
-      </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Edge_Exchange_Merge" bpmnElement="Flow_Exchange_To_Merge">
-        <di:waypoint x="4040" y="290"/>
-        <di:waypoint x="4180" y="328"/>
-      </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Edge_Repair_Merge" bpmnElement="Flow_Repair_To_Merge">
-        <di:waypoint x="4040" y="390"/>
-        <di:waypoint x="4205" y="390"/>
-        <di:waypoint x="4205" y="353"/>
-      </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Edge_ManualRes_Merge" bpmnElement="Flow_ManualResolution_To_Merge">
-        <di:waypoint x="4060" y="485"/>
-        <di:waypoint x="4205" y="485"/>
-        <di:waypoint x="4205" y="353"/>
-      </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Edge_Merge_End" bpmnElement="Flow_Merge_To_ResolveEnd">
-        <di:waypoint x="4230" y="328"/>
-        <di:waypoint x="4490" y="328"/>
-      </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Edge_Resolve_Final" bpmnElement="Flow_Resolve_To_FinalResponse">
-        <di:waypoint x="4650" y="328"/>
-        <di:waypoint x="4710" y="348"/>
-      </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Edge_Final_Notify" bpmnElement="Flow_FinalResponse_To_Notify">
-        <di:waypoint x="4880" y="348"/>
-        <di:waypoint x="4940" y="348"/>
-      </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Edge_Notify_Close" bpmnElement="Flow_Notify_To_Close">
-        <di:waypoint x="5090" y="348"/>
-        <di:waypoint x="5150" y="348"/>
-      </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Edge_Close_End" bpmnElement="Flow_Close_To_End">
-        <di:waypoint x="5300" y="348"/>
-        <di:waypoint x="5360" y="348"/>
-      </bpmndi:BPMNEdge>
       <bpmndi:BPMNShape id="Shape_EvalStart" bpmnElement="Start_Evaluate">
-        <dc:Bounds x="1080" y="322" width="36" height="36"/>
+        <dc:Bounds x="1080" y="322" width="36" height="36" />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Shape_AIAnalysis" bpmnElement="Task_AIAnalysis">
-        <dc:Bounds x="1130" y="285" width="135" height="105"/>
+        <dc:Bounds x="1130" y="285" width="135" height="105" />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Shape_AIAvailable" bpmnElement="Gateway_AIAvailable" isMarkerVisible="true">
-        <dc:Bounds x="1295" y="312" width="50" height="50"/>
+        <dc:Bounds x="1295" y="312" width="50" height="50" />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Shape_RAG" bpmnElement="Task_RetrievePolicyRAG">
-        <dc:Bounds x="1380" y="275" width="150" height="115"/>
+        <dc:Bounds x="1380" y="275" width="150" height="115" />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Shape_RAGContext" bpmnElement="Gateway_RAGContext" isMarkerVisible="true">
-        <dc:Bounds x="1550" y="312" width="50" height="50"/>
+        <dc:Bounds x="1550" y="312" width="50" height="50" />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Shape_ExtractFacts" bpmnElement="Task_ExtractFacts">
-        <dc:Bounds x="1610" y="275" width="135" height="115"/>
+        <dc:Bounds x="1620" y="275" width="125" height="115" />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Shape_ManualAnalysis" bpmnElement="Task_ManualAnalysis">
-        <dc:Bounds x="1390" y="410" width="175" height="80"/>
+        <dc:Bounds x="1390" y="410" width="175" height="80" />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Shape_Eligibility" bpmnElement="Task_EvaluateEligibility">
-        <dc:Bounds x="1760" y="275" width="100" height="115"/>
+        <dc:Bounds x="1765" y="275" width="95" height="115" />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Shape_EvalEnd" bpmnElement="End_Evaluate">
-        <dc:Bounds x="1880" y="322" width="36" height="36"/>
+        <dc:Bounds x="1875" y="322" width="36" height="36" />
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNEdge id="Edge_EvalStart_AI" bpmnElement="Flow_EvalStart_To_AI">
-        <di:waypoint x="1116" y="340"/>
-        <di:waypoint x="1130" y="340"/>
-      </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Edge_AI_Gw" bpmnElement="Flow_AI_To_Available">
-        <di:waypoint x="1265" y="340"/>
-        <di:waypoint x="1295" y="337"/>
-      </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Edge_AIYes" bpmnElement="Flow_AI_Yes">
-        <di:waypoint x="1345" y="337"/>
-        <di:waypoint x="1380" y="337"/>
-      </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Edge_AINo" bpmnElement="Flow_AI_No">
-        <di:waypoint x="1320" y="362"/>
-        <di:waypoint x="1320" y="450"/>
-        <di:waypoint x="1390" y="450"/>
-      </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Edge_RAG_Context" bpmnElement="Flow_RAG_To_Context">
-        <di:waypoint x="1530" y="337"/>
-        <di:waypoint x="1550" y="337"/>
-      </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Edge_RAGYes" bpmnElement="Flow_RAG_Yes">
-        <di:waypoint x="1600" y="337"/><di:waypoint x="1610" y="337"/></bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Edge_RAGNo" bpmnElement="Flow_RAG_No">
-        <di:waypoint x="1575" y="362"/>
-        <di:waypoint x="1575" y="450"/>
-        <di:waypoint x="1565" y="450"/>
-      </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Edge_Extract_Eligibility" bpmnElement="Flow_Facts_To_Eligibility">
-        <di:waypoint x="1745" y="337"/><di:waypoint x="1760" y="337"/></bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Edge_ManualEligibility" bpmnElement="Flow_Manual_To_Eligibility">
-        <di:waypoint x="1565" y="450"/><di:waypoint x="1810" y="450"/><di:waypoint x="1810" y="390"/></bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Edge_Eligibility_End" bpmnElement="Flow_Eligibility_To_EvalEnd">
-        <di:waypoint x="1860" y="337"/><di:waypoint x="1880" y="340"/></bpmndi:BPMNEdge>
       <bpmndi:BPMNShape id="Shape_SheinAgent" bpmnElement="TextAnnotation_SheinAgent">
-        <dc:Bounds x="1380" y="65" width="210" height="70"/>
+        <dc:Bounds x="1380" y="65" width="210" height="70" />
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNEdge id="Edge_RAG_SheinAgent" bpmnElement="Association_RAG_SheinAgent">
-        <di:waypoint x="1455" y="275"/>
-        <di:waypoint x="1485" y="135"/>
-      </bpmndi:BPMNEdge>
+
+      <!-- Éligibilité / refus -->
+      <bpmndi:BPMNShape id="Shape_Eligible" bpmnElement="Gateway_Eligible" isMarkerVisible="true">
+        <dc:Bounds x="1970" y="323" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_GenerateRefusal" bpmnElement="Task_GenerateRefusal">
+        <dc:Bounds x="1945" y="520" width="160" height="90" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_NotifyRefusal" bpmnElement="Task_NotifyRefusal">
+        <dc:Bounds x="2160" y="520" width="150" height="90" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_EndRefused" bpmnElement="End_Refused">
+        <dc:Bounds x="2365" y="547" width="36" height="36" />
+      </bpmndi:BPMNShape>
+
+      <!-- Sous-processus Traitement du retour autorisé -->
+      <bpmndi:BPMNShape id="Shape_SubHandle" bpmnElement="SubProcess_HandleAuthorizedReturn" isExpanded="true">
+        <dc:Bounds x="2080" y="120" width="1270" height="390" />
+      </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Shape_HandleStart" bpmnElement="Start_Handle">
-        <dc:Bounds x="2110" y="302" width="36" height="36"/>
+        <dc:Bounds x="2110" y="302" width="36" height="36" />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Shape_ValidateSolution" bpmnElement="Task_ValidateSolution">
-        <dc:Bounds x="2180" y="260" width="165" height="110"/>
+        <dc:Bounds x="2180" y="260" width="165" height="110" />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Shape_SLA24" bpmnElement="Boundary_SLA24h">
-        <dc:Bounds x="2245" y="352" width="36" height="36"/>
+        <dc:Bounds x="2245" y="352" width="36" height="36" />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Shape_Escalate" bpmnElement="Task_EscalateSupervisor">
-        <dc:Bounds x="2180" y="410" width="170" height="75"/>
+        <dc:Bounds x="2180" y="410" width="170" height="75" />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Shape_EndEscalation" bpmnElement="End_Escalation">
-        <dc:Bounds x="2380" y="430" width="36" height="36"/>
+        <dc:Bounds x="2380" y="430" width="36" height="36" />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Shape_ReturnRequired" bpmnElement="Gateway_ReturnRequired" isMarkerVisible="true">
-        <dc:Bounds x="2400" y="290" width="50" height="50"/>
+        <dc:Bounds x="2400" y="290" width="50" height="50" />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Shape_SendInstructions" bpmnElement="Task_SendReturnInstructions">
-        <dc:Bounds x="2490" y="250" width="180" height="100"/>
+        <dc:Bounds x="2490" y="250" width="180" height="100" />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Shape_Receipt" bpmnElement="Task_ConfirmReceipt">
-        <dc:Bounds x="2710" y="250" width="160" height="100"/>
+        <dc:Bounds x="2710" y="250" width="160" height="100" />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Shape_Inspect" bpmnElement="Task_InspectProduct">
-        <dc:Bounds x="2910" y="245" width="175" height="110"/>
+        <dc:Bounds x="2910" y="245" width="175" height="110" />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Shape_Consistent" bpmnElement="Gateway_ProductConsistent" isMarkerVisible="true">
-        <dc:Bounds x="3120" y="290" width="50" height="50"/>
+        <dc:Bounds x="3120" y="275" width="50" height="50" />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Shape_Reevaluate" bpmnElement="Task_ReevaluateResolution">
-        <dc:Bounds x="3040" y="400" width="190" height="80"/>
+        <dc:Bounds x="3040" y="400" width="190" height="80" />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Shape_HandleEnd" bpmnElement="End_Handle">
-        <dc:Bounds x="3280" y="302" width="36" height="36"/>
+        <dc:Bounds x="3280" y="282" width="36" height="36" />
       </bpmndi:BPMNShape>
+
+      <!-- Sous-processus Résolution -->
+      <bpmndi:BPMNShape id="Shape_SubResolve" bpmnElement="SubProcess_ResolveCase" isExpanded="true">
+        <dc:Bounds x="3420" y="120" width="1230" height="420" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_ResolveStart" bpmnElement="Start_Resolve">
+        <dc:Bounds x="3460" y="310" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Decide" bpmnElement="Task_DecideResolution">
+        <dc:Bounds x="3540" y="278" width="170" height="100" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_ResolutionType" bpmnElement="Gateway_ResolutionType" isMarkerVisible="true">
+        <dc:Bounds x="3770" y="303" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Refund" bpmnElement="Task_ExecuteRefund">
+        <dc:Bounds x="3880" y="150" width="180" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_OriginalPayment" bpmnElement="Task_RefundOriginalPayment">
+        <dc:Bounds x="3880" y="250" width="200" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Returnless" bpmnElement="Task_RefundWithoutReturn">
+        <dc:Bounds x="3880" y="350" width="180" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_ManualResolution" bpmnElement="Task_ManualResolution">
+        <dc:Bounds x="3880" y="450" width="190" height="70" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_ResolutionMerge" bpmnElement="Gateway_ResolutionMerge" isMarkerVisible="true">
+        <dc:Bounds x="4180" y="303" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_ResolveEnd" bpmnElement="End_Resolve">
+        <dc:Bounds x="4490" y="310" width="36" height="36" />
+      </bpmndi:BPMNShape>
+
+      <!-- Fin de processus -->
+      <bpmndi:BPMNShape id="Shape_FinalResponse" bpmnElement="Task_GenerateFinalResponse">
+        <dc:Bounds x="4710" y="298" width="170" height="100" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_NotifyClient" bpmnElement="Task_NotifyClient">
+        <dc:Bounds x="4940" y="298" width="150" height="100" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_CloseCase" bpmnElement="Task_CloseCase">
+        <dc:Bounds x="5150" y="298" width="150" height="100" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_EndCompleted" bpmnElement="End_Completed">
+        <dc:Bounds x="5360" y="330" width="36" height="36" />
+      </bpmndi:BPMNShape>
+
+      <!-- ===== Arcs : niveau processus ===== -->
+      <bpmndi:BPMNEdge id="Edge_Start_Submit" bpmnElement="Flow_Start_To_Submit">
+        <di:waypoint x="156" y="348" />
+        <di:waypoint x="210" y="348" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Submit_Fetch" bpmnElement="Flow_Submit_To_Fetch">
+        <di:waypoint x="340" y="348" />
+        <di:waypoint x="400" y="348" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Fetch_OrderFound" bpmnElement="Flow_Fetch_To_OrderFound">
+        <di:waypoint x="550" y="348" />
+        <di:waypoint x="610" y="348" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_OrderYes" bpmnElement="Flow_OrderFound_Yes">
+        <di:waypoint x="660" y="348" />
+        <di:waypoint x="730" y="348" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_OrderNo" bpmnElement="Flow_OrderFound_No">
+        <di:waypoint x="635" y="373" />
+        <di:waypoint x="635" y="470" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_RequestCorrection_Gw" bpmnElement="Flow_RequestCorrection_To_CorrectionProvided">
+        <di:waypoint x="710" y="520" />
+        <di:waypoint x="760" y="520" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_CorrectionYes" bpmnElement="Flow_Correction_Yes">
+        <di:waypoint x="785" y="545" />
+        <di:waypoint x="785" y="610" />
+        <di:waypoint x="475" y="610" />
+        <di:waypoint x="475" y="398" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_CorrectionNo" bpmnElement="Flow_Correction_No">
+        <di:waypoint x="810" y="520" />
+        <di:waypoint x="850" y="520" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_OrderNotFound_End" bpmnElement="Flow_OrderNotFound_To_End">
+        <di:waypoint x="1030" y="515" />
+        <di:waypoint x="1080" y="515" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Check_InfoGw" bpmnElement="Flow_Check_To_InfoComplete">
+        <di:waypoint x="880" y="348" />
+        <di:waypoint x="940" y="348" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_InfoYes" bpmnElement="Flow_InfoComplete_Yes">
+        <di:waypoint x="990" y="348" />
+        <di:waypoint x="1060" y="348" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_InfoNo" bpmnElement="Flow_InfoComplete_No">
+        <di:waypoint x="965" y="323" />
+        <di:waypoint x="965" y="200" />
+        <di:waypoint x="820" y="200" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_RequestInfo_ReceiveInfo" bpmnElement="Flow_RequestInfo_To_ReceiveInfo">
+        <di:waypoint x="820" y="195" />
+        <di:waypoint x="890" y="195" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Additional_Back" bpmnElement="Flow_AdditionalInfo_To_Check">
+        <di:waypoint x="890" y="200" />
+        <di:waypoint x="805" y="200" />
+        <di:waypoint x="805" y="298" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_InfoTimeout" bpmnElement="Flow_InfoTimeout_To_Notify">
+        <di:waypoint x="965" y="268" />
+        <di:waypoint x="1040" y="300" />
+        <di:waypoint x="1040" y="540" />
+        <di:waypoint x="1065" y="560" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_NotifyIncomplete_End" bpmnElement="Flow_NotifyIncomplete_To_End">
+        <di:waypoint x="1160" y="600" />
+        <di:waypoint x="1200" y="600" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Evaluate_Eligible" bpmnElement="Flow_Evaluate_To_Eligible">
+        <di:waypoint x="1910" y="348" />
+        <di:waypoint x="1970" y="348" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_EligibleYes" bpmnElement="Flow_Eligible_Yes">
+        <di:waypoint x="2020" y="348" />
+        <di:waypoint x="2080" y="348" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_EligibleNo" bpmnElement="Flow_Eligible_No">
+        <di:waypoint x="1995" y="373" />
+        <di:waypoint x="1995" y="520" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_RefusalNotify" bpmnElement="Flow_Refusal_To_Notify">
+        <di:waypoint x="2105" y="565" />
+        <di:waypoint x="2160" y="565" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_NotifyRefEnd" bpmnElement="Flow_NotifyRefusal_To_End">
+        <di:waypoint x="2310" y="565" />
+        <di:waypoint x="2365" y="565" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Handle_Resolve" bpmnElement="Flow_Handle_To_Resolve">
+        <di:waypoint x="3350" y="348" />
+        <di:waypoint x="3420" y="348" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Resolve_Final" bpmnElement="Flow_Resolve_To_FinalResponse">
+        <di:waypoint x="4650" y="348" />
+        <di:waypoint x="4710" y="348" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Final_Notify" bpmnElement="Flow_FinalResponse_To_Notify">
+        <di:waypoint x="4880" y="348" />
+        <di:waypoint x="4940" y="348" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Notify_Close" bpmnElement="Flow_Notify_To_Close">
+        <di:waypoint x="5090" y="348" />
+        <di:waypoint x="5150" y="348" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Close_End" bpmnElement="Flow_Close_To_End">
+        <di:waypoint x="5300" y="348" />
+        <di:waypoint x="5360" y="348" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_RAG_SheinAgent" bpmnElement="Association_RAG_SheinAgent">
+        <di:waypoint x="1455" y="275" />
+        <di:waypoint x="1485" y="135" />
+      </bpmndi:BPMNEdge>
+
+      <!-- ===== Arcs : Évaluation ===== -->
+      <bpmndi:BPMNEdge id="Edge_EvalStart_AI" bpmnElement="Flow_EvalStart_To_AI">
+        <di:waypoint x="1116" y="340" />
+        <di:waypoint x="1130" y="340" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_AI_Gw" bpmnElement="Flow_AI_To_Available">
+        <di:waypoint x="1265" y="337" />
+        <di:waypoint x="1295" y="337" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_AIYes" bpmnElement="Flow_AI_Yes">
+        <di:waypoint x="1345" y="337" />
+        <di:waypoint x="1380" y="337" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_AINo" bpmnElement="Flow_AI_No">
+        <di:waypoint x="1320" y="362" />
+        <di:waypoint x="1320" y="450" />
+        <di:waypoint x="1390" y="450" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_RAG_Context" bpmnElement="Flow_RAG_To_Context">
+        <di:waypoint x="1530" y="337" />
+        <di:waypoint x="1550" y="337" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_RAGYes" bpmnElement="Flow_RAG_Yes">
+        <di:waypoint x="1600" y="337" />
+        <di:waypoint x="1620" y="337" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_RAGNo" bpmnElement="Flow_RAG_No">
+        <di:waypoint x="1575" y="362" />
+        <di:waypoint x="1575" y="400" />
+        <di:waypoint x="1500" y="400" />
+        <di:waypoint x="1500" y="410" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Extract_Eligibility" bpmnElement="Flow_Facts_To_Eligibility">
+        <di:waypoint x="1745" y="337" />
+        <di:waypoint x="1765" y="337" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_ManualEligibility" bpmnElement="Flow_Manual_To_Eligibility">
+        <di:waypoint x="1565" y="450" />
+        <di:waypoint x="1812" y="450" />
+        <di:waypoint x="1812" y="390" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Eligibility_End" bpmnElement="Flow_Eligibility_To_EvalEnd">
+        <di:waypoint x="1860" y="340" />
+        <di:waypoint x="1875" y="340" />
+      </bpmndi:BPMNEdge>
+
+      <!-- ===== Arcs : Traitement du retour autorisé ===== -->
       <bpmndi:BPMNEdge id="Edge_HandleStart_Validate" bpmnElement="Flow_HandleStart_To_Validate">
-        <di:waypoint x="2146" y="320"/>
-        <di:waypoint x="2180" y="315"/>
+        <di:waypoint x="2146" y="320" />
+        <di:waypoint x="2180" y="320" />
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Edge_Validate_ReturnReq" bpmnElement="Flow_Validate_To_ReturnRequired">
-        <di:waypoint x="2345" y="315"/>
-        <di:waypoint x="2400" y="315"/>
+        <di:waypoint x="2345" y="315" />
+        <di:waypoint x="2400" y="315" />
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Edge_SLA_Escalate" bpmnElement="Flow_SLA_To_Escalate">
-        <di:waypoint x="2263" y="388"/>
-        <di:waypoint x="2263" y="410"/>
+        <di:waypoint x="2263" y="388" />
+        <di:waypoint x="2263" y="410" />
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Edge_Escalate_End" bpmnElement="Flow_Escalate_To_End">
-        <di:waypoint x="2350" y="447"/>
-        <di:waypoint x="2380" y="448"/>
+        <di:waypoint x="2350" y="448" />
+        <di:waypoint x="2380" y="448" />
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Edge_ReturnReq_Yes" bpmnElement="Flow_ReturnRequired_Yes">
-        <di:waypoint x="2450" y="315"/>
-        <di:waypoint x="2490" y="300"/>
+        <di:waypoint x="2450" y="315" />
+        <di:waypoint x="2470" y="315" />
+        <di:waypoint x="2470" y="300" />
+        <di:waypoint x="2490" y="300" />
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Edge_ReturnReq_No" bpmnElement="Flow_ReturnRequired_No">
-        <di:waypoint x="2425" y="340"/>
-        <di:waypoint x="2425" y="380"/>
-        <di:waypoint x="3298" y="380"/>
-        <di:waypoint x="3298" y="338"/>
+        <di:waypoint x="2425" y="290" />
+        <di:waypoint x="2425" y="190" />
+        <di:waypoint x="3298" y="190" />
+        <di:waypoint x="3298" y="282" />
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Edge_Instructions_Receipt" bpmnElement="Flow_Instructions_To_Receipt">
-        <di:waypoint x="2670" y="300"/>
-        <di:waypoint x="2710" y="300"/>
+        <di:waypoint x="2670" y="300" />
+        <di:waypoint x="2710" y="300" />
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Edge_Receipt_Inspect" bpmnElement="Flow_Receipt_To_Inspect">
-        <di:waypoint x="2870" y="300"/>
-        <di:waypoint x="2910" y="300"/>
+        <di:waypoint x="2870" y="300" />
+        <di:waypoint x="2910" y="300" />
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Edge_Inspect_Consistent" bpmnElement="Flow_Inspect_To_Consistent">
-        <di:waypoint x="3085" y="300"/>
-        <di:waypoint x="3120" y="315"/>
+        <di:waypoint x="3085" y="300" />
+        <di:waypoint x="3120" y="300" />
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Edge_ConsistentYes" bpmnElement="Flow_Consistent_Yes">
-        <di:waypoint x="3170" y="315"/>
-        <di:waypoint x="3280" y="320"/>
+        <di:waypoint x="3170" y="300" />
+        <di:waypoint x="3280" y="300" />
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Edge_ConsistentNo" bpmnElement="Flow_Consistent_No">
-        <di:waypoint x="3145" y="340"/>
-        <di:waypoint x="3145" y="400"/>
+        <di:waypoint x="3145" y="325" />
+        <di:waypoint x="3145" y="400" />
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Edge_Reevaluate_End" bpmnElement="Flow_Reevaluate_To_HandleEnd">
-        <di:waypoint x="3230" y="440"/>
-        <di:waypoint x="3298" y="440"/>
-        <di:waypoint x="3298" y="338"/>
+        <di:waypoint x="3230" y="440" />
+        <di:waypoint x="3298" y="440" />
+        <di:waypoint x="3298" y="318" />
+      </bpmndi:BPMNEdge>
+
+      <!-- ===== Arcs : Résolution ===== -->
+      <bpmndi:BPMNEdge id="Edge_ResolveStart_Decide" bpmnElement="Flow_ResolveStart_To_Decide">
+        <di:waypoint x="3496" y="328" />
+        <di:waypoint x="3540" y="328" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Decide_Type" bpmnElement="Flow_Decide_To_Type">
+        <di:waypoint x="3710" y="328" />
+        <di:waypoint x="3770" y="328" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Refund" bpmnElement="Flow_Resolution_Refund">
+        <di:waypoint x="3795" y="303" />
+        <di:waypoint x="3795" y="190" />
+        <di:waypoint x="3880" y="190" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_OriginalPayment" bpmnElement="Flow_Resolution_OriginalPayment">
+        <di:waypoint x="3820" y="328" />
+        <di:waypoint x="3850" y="328" />
+        <di:waypoint x="3850" y="290" />
+        <di:waypoint x="3880" y="290" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Returnless" bpmnElement="Flow_Resolution_Returnless">
+        <di:waypoint x="3795" y="353" />
+        <di:waypoint x="3795" y="390" />
+        <di:waypoint x="3880" y="390" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_ManualRes" bpmnElement="Flow_Resolution_Manual">
+        <di:waypoint x="3795" y="353" />
+        <di:waypoint x="3795" y="485" />
+        <di:waypoint x="3880" y="485" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Refund_Merge" bpmnElement="Flow_Refund_To_Merge">
+        <di:waypoint x="4060" y="190" />
+        <di:waypoint x="4205" y="190" />
+        <di:waypoint x="4205" y="303" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_OriginalPayment_Merge" bpmnElement="Flow_OriginalPayment_To_Merge">
+        <di:waypoint x="4080" y="290" />
+        <di:waypoint x="4130" y="290" />
+        <di:waypoint x="4130" y="328" />
+        <di:waypoint x="4180" y="328" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Returnless_Merge" bpmnElement="Flow_Returnless_To_Merge">
+        <di:waypoint x="4060" y="390" />
+        <di:waypoint x="4205" y="390" />
+        <di:waypoint x="4205" y="353" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_ManualRes_Merge" bpmnElement="Flow_ManualResolution_To_Merge">
+        <di:waypoint x="4070" y="485" />
+        <di:waypoint x="4230" y="485" />
+        <di:waypoint x="4230" y="380" />
+        <di:waypoint x="4205" y="380" />
+        <di:waypoint x="4205" y="353" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Merge_End" bpmnElement="Flow_Merge_To_ResolveEnd">
+        <di:waypoint x="4230" y="328" />
+        <di:waypoint x="4490" y="328" />
       </bpmndi:BPMNEdge>
     </bpmndi:BPMNPlane>
   </bpmndi:BPMNDiagram>

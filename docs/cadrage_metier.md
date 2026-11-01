@@ -1,80 +1,77 @@
 # ReturnFlow AI — cadrage métier
 
-**Version :** 0.4 — worker `shein-agent` et étude de cas vêtements SHEIN Maroc
+**Version :** 1.0 — retours de vêtements, cas académique SHEIN Maroc
+**Références :** [BPMN AS-IS](../camunda/returnflow_as_is.bpmn), [BPMN TO-BE](../camunda/returnflow_to_be.bpmn), [README](../README.md)
 
-**Base de travail :** nouveau BPMN TO-BE académique et README
+## 1. Finalité et limites
 
-Ce document résume le cas d’étude académique inspiré des politiques publiques de retour SHEIN Maroc. Il ne reproduit pas le processus interne réel de SHEIN et n’utilise aucune donnée interne. Les fonctions restent à implémenter et à valider.
+ReturnFlow AI compare un processus manuel de référence avec un processus cible assisté par un worker automatisé, un RAG et un LLM. Le cas est inspiré des politiques publiques de retour SHEIN Maroc. Il ne représente pas le processus interne de SHEIN et n’utilise aucune donnée opérationnelle interne. Les cas, décisions, identifiants, délais et remboursements de démonstration sont simulés.
 
-## 1. Problématique et objectif
+Le BPMN TO-BE décrit le comportement visé. Les Service Tasks portent le type de job `shein-agent` et un en-tête `operation`. Le code actuel est un prototype FastAPI/LangGraph de question-réponse RAG, pas un worker Zeebe; il ne réalise pas encore les 14 opérations du modèle. Aucun prestataire de paiement n’est relié au projet.
 
-Le cas cible porte sur les retours de vêtements et les motifs liés à la taille, la couleur, au tissu, à la coupe, aux défauts, au mauvais article et à la non-conformité à la description. Le processus TO-BE retrouve la commande, vérifie les informations, consulte les politiques via RAG, extrait des faits, applique les règles déterministes, puis conserve la validation humaine.
+## 2. Processus AS-IS et TO-BE
 
-Le BPMN route les 14 tâches automatisées vers le worker Camunda `shein-agent`; l'en-tête `operation` précise le traitement. Le worker doit assurer la recherche de commande, le RAG, l'analyse, l'évaluation déterministe, les messages, les notifications et les résolutions simulées. L'agent SAV humain garde les validations métier. La proposition avant retour physique est distincte du choix de résolution après inspection.
+### AS-IS
 
-## 2. Périmètre du processus AS-IS
+Le processus de référence comprend la lecture de la demande, la recherche manuelle de commande, la vérification des données et des règles, l’échange éventuel avec le client, la décision d’autorisation, l’envoi des instructions, la réception et l’inspection du produit, la résolution, la notification et la clôture. Il ne comporte aucune tâche IA ni automatisation. Les exceptions non représentées ne sont pas ajoutées artificiellement au journal AS-IS.
 
-Le BPMN AS-IS partagé couvre le traitement manuel suivant :
+### TO-BE
 
-1. Recevoir et lire la demande.
-2. Rechercher la commande.
-3. Vérifier les informations et les règles.
-4. Demander un complément au client et reprendre la vérification si nécessaire.
-5. Autoriser ou refuser le retour; enregistrer et notifier un refus.
-6. Envoyer les instructions, recevoir le produit et l'inspecter.
-7. Décider puis exécuter la résolution finale.
-8. Notifier le client et clôturer le dossier.
+Le client soumet une demande. `shein-agent` retrouve commande et article, vérifie la complétude puis demande un complément si nécessaire. Un timer interruptif de 48 heures est attaché à la tâche qui attend ce complément; à expiration, le client est notifié de la clôture.
 
-L'AS-IS est le processus manuel de référence et ne comprend ni IA ni automatisation Camunda. Le TO-BE inclut le worker `shein-agent` (à implémenter), le RAG, le LLM, l'analyse manuelle de repli, les règles/DMN, l'escalade SLA et les remboursements simulés. Le BPMN ne modélise pas de base PostgreSQL/pgvector.
+Pour une demande complète, `shein-agent` analyse le motif, récupère les règles via le RAG et extrait les faits utiles. Une indisponibilité du LLM ou un contexte RAG insuffisant dirige le dossier vers l’analyse humaine de repli. Les règles déterministes évaluent l’éligibilité; le LLM ne prend pas cette décision seul. Un refus est expliqué et notifié.
 
-## 3. Acteurs
+Pour un dossier éligible, l’agent SAV vérifie les faits et confirme l’éligibilité, puis décide si le produit doit être retourné physiquement. Un timer non interruptif de 24 heures crée une tâche d’escalade vers le superviseur sans interrompre la validation. Si un retour est requis, le dossier attend la confirmation de réception de l’entrepôt, puis l’article est inspecté. Une inspection non conforme mène à une réévaluation humaine. Le modèle ne fixe pas de délai de réception du produit.
 
-| Acteur | Responsabilité décrite |
+La résolution intervient après la validation et l’inspection éventuelle. Elle choisit le portefeuille SHEIN, le moyen de paiement initial, le remboursement sans retour physique si `returnRequired = false`, ou le traitement manuel en cas d’exception. Les opérations financières sont simulées. Le client est ensuite notifié et le dossier clôturé.
+
+## 3. Acteurs et responsabilités
+
+| Acteur | Responsabilité dans le modèle |
 |---|---|
-| Client | Soumettre la demande, fournir les compléments et retourner le produit. |
-| Agent SAV | Valider la proposition après contrôle d'éligibilité et confirmer le traitement après inspection. |
-| Agent entrepôt | Confirmer la réception et inspecter le produit. |
-| Responsable SAV | Recevoir les escalades, notamment en cas de dépassement du SLA prévu. |
-| `shein-agent` (worker) | Exécuter les Service Tasks automatisées selon l'en-tête `operation`; worker planifié, non encore implémenté. |
+| Client | Soumettre la demande et fournir les compléments requis. |
+| `shein-agent` | Type de job prévu pour les tâches automatisées; worker Zeebe à développer. |
+| Agent SAV | Analyse humaine de repli, validation des faits et de l’éligibilité, choix du besoin de retour, traitement des exceptions et confirmation de la résolution. |
+| Entrepôt | Enregistrer la réception et inspecter l’article retourné. |
+| Responsable SAV | Traiter l’escalade créée après le délai de validation de 24 heures. |
 
-## 4. Variables métier de référence
+PostgreSQL/pgvector est utilisé par le prototype RAG pour stocker les embeddings. Ce détail d’implémentation n’est ni une tâche ni un acteur BPMN.
 
-Les noms ci-dessous sont des variables de processus prévues pour Camunda et le worker `shein-agent`. Ils ne supposent ni base de données ni API déjà implémentée.
+## 4. Variables et décisions
 
-| Entité | Champs principaux |
+Le futur worker devra lire les données d’entrée, écrire les résultats attendus par le modèle et préserver les éléments de preuve utilisés pour chaque décision. Ces variables forment le contrat à implémenter; l’API actuelle ne les remplit pas encore.
+
+| Domaine | Variables représentatives |
 |---|---|
 | Commande et article | `order_id`, `order_item_id`, `product_id`, `product_name`, `ordered_quantity`, `purchase_date`, `delivery_date`, `unit_price` |
-| Dossier de retour | `return_id`, `order_id`, `order_item_id`, `return_quantity`, `return_reason`, `requested_resolution`, `eligibility_status`, `authorization_status`, `ai_status`, `ai_suggestion`, `agent_decision`, `received_at`, `inspection_result`, `final_resolution`, `resolution_status`, `closed_at` |
+| Demande | `return_id`, `return_quantity`, `return_reason`, `description`, `requested_resolution` |
+| Analyse et règles | `category`, `aiAvailable`, `policyChunks`, `sourceIds`, `ragContextFound`, `eligibility`, `eligibility_reason`, `agent_decision` |
+| Retour physique | `returnRequired`, `received_at`, `inspection_result`, `inspection_differences` |
+| Résolution | `refundMethod`, `resolution_status`, `closed_at` |
 
-Les exemples et journaux de démonstration doivent utiliser des données synthétiques ou anonymisées. Pour Process Mining, chaque événement doit pouvoir être rattaché à un `return_id` et comporter au minimum une activité, un horodatage et un résultat.
+| Décision | Comportement retenu |
+|---|---|
+| Commande/article introuvable | Demander une correction; sans correction, notifier et clôturer. |
+| Informations incomplètes | Demander un complément; clôturer après 48 h sans réponse. |
+| LLM indisponible ou RAG insuffisant | Passer par une analyse humaine avant l’application des règles. |
+| Éligibilité | Appliquer des règles déterministes aux faits et politiques, en conservant les sources. |
+| Validation SAV | Confirmer l’éligibilité et le besoin de retour physique; choisir le remboursement séparément. |
+| SLA SAV | Après 24 h, créer le suivi du superviseur sans interrompre la validation. |
+| Réception produit | Attendre la confirmation de l’entrepôt; aucun délai de livraison n’est imposé. |
+| Inspection non conforme | Faire réévaluer le dossier par l’agent SAV avant la résolution. |
+| Résolution | Portefeuille, moyen initial, retourless si aucun retour physique n’est requis, ou exception manuelle. Aucun transfert d’argent n’est exécuté. |
+| Incident technique Camunda | Après épuisement des retries, reprendre l’incident comme problème d’exécution; ne pas le confondre avec une décision métier. |
 
-## 5. Règles et décisions à valider
+Toute règle citée dans le rapport doit rester liée à une source identifiable et à la version consultée dans le corpus documentaire.
 
-| Sujet | Règle de travail du nouveau BPMN | À confirmer |
-|---|---|---|
-| Complétude | Demander un complément; fermer le dossier après 48 h sans réponse. | Le délai est un paramètre de démonstration à confirmer. |
-| Éligibilité vêtements | Le modèle s'appuie sur une fenêtre publique de 30 jours après réception et sur l'état neuf, non porté, non lavé, non endommagé, non modifié et les étiquettes d'origine. | Vérifier les exceptions et la version de la politique publique avant de figer les règles. |
-| Catégories | Certaines catégories sont exclues; les articles signalés défectueux ou endommagés suivent un chemin SAV. | Maintenir la liste des catégories exclues et des délais propres aux défauts avec leurs sources. |
-| RAG et LLM | `shein-agent` récupère les extraits/sources, puis le LLM classe et extrait les faits; l'éligibilité reste évaluée par les règles/DMN. | Seuil de pertinence RAG, formats de sortie et gestion des faits incertains. |
-| Validation humaine | L'agent SAV humain valide la proposition et choisit si un retour physique est requis. | Distinguer les motifs de remboursement sans retour des exceptions. |
-| Inspection et résolution | Après réception, un contrôle qualité peut déclencher une réévaluation; le traitement financier est simulé. | Définir les suites exactes en cas de non-conformité. |
-| Délais | Un SLA de 24 h déclenche une escalade non interruptive pendant la validation SAV. | Durée et destinataire de l'attente du produit. |
+## 5. Formulaires et cohérence du flux
 
-Les règles SHEIN sont traitées comme des règles publiques de référence pour le cas académique, pas comme une reproduction du processus interne. Conserver avec chaque règle les identifiants et extraits de source récupérés par le RAG. Les valeurs distinctes de l'en-tête `operation` sont documentées dans le README.
+Chaque formulaire est rattaché à une tâche par son `formId`. Les formulaires de validation SAV et de résolution sont distincts : le premier confirme l’éligibilité et le besoin de retour physique; le second choisit le moyen de remboursement ou l’exception après inspection éventuelle. Le chemin `returnless` exige `returnRequired = false`; les choix incompatibles aboutissent au traitement manuel par défaut.
+
+Les activités des journaux utilisent les noms exacts des tâches du BPMN correspondant. Les événements de passerelle, début, fin et timers ne sont pas enregistrés comme activités terminées. Les traces expirant sur le timer de complément se terminent par « Demander un complément au client » puis « Notifier la clôture - complément non reçu »; elles ne déclarent pas le complément comme reçu.
 
 ## 6. Scénarios de démonstration
 
-Le nouveau BPMN route ses tâches automatiques vers `shein-agent` et couvre notamment : retour éligible ou hors règles, commande introuvable avec correction, demande incomplète avec délai de 48 h, indisponibilité IA, contexte RAG insuffisant, dépassement du SLA de 24 h, retour physique requis ou non, inspection conforme ou non conforme, mode de remboursement standard et exception SAV manuelle.
+Les traces couvrent des cas acceptés ou refusés, complément reçu, correction de références, références introuvables, complément expiré, fallback LLM, fallback RAG, escalade après 24 heures, remboursement sans retour physique, inspection non conforme et résolution manuelle. Les 200 cas communs AS-IS/TO-BE forment la cohorte appariée. Les 180 cas additionnels n’existent que dans le TO-BE et exercent ses branches particulières; ils restent exclus de la comparaison des durées.
 
-Pour la modélisation AS-IS, les cas principaux à vérifier sont la demande complète, le complément d'information, le refus, la réception et inspection, puis la décision et la clôture. Les cas IA, SLA automatisé, idempotence et échec de service relèvent du TO-BE.
-
-## 7. Écart de modélisation à suivre
-
-Le README prévoit le cas « commande ou article introuvable » dans le TO-BE. Le BPMN AS-IS partagé enchaîne la recherche de commande avec la vérification, sans passerelle dédiée indiquant si la commande existe. Confirmer avec l'équipe si ce cas doit être ajouté au diagramme AS-IS ou rester documenté uniquement comme exception cible.
-
-## 8. Références de travail
-
-- `README.md` — périmètre, processus et scénarios de démonstration.
-- `camunda/returnflow_as_is.bpmn` — processus manuel AS-IS.
-- `camunda/returnflow_to_be.bpmn` — processus cible TO-BE.
-- `camunda/*.form` — formulaires prévus pour les étapes du processus cible.
+La méthode et ses limites sont détaillées dans [logs/README.md](../logs/README.md) et [process_mining_plan.md](../logs/04_process_mining/process_mining_plan.md).

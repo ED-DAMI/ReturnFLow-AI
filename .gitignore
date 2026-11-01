@@ -27,7 +27,3 @@ desktop.ini
 # Temporary files and logs
 *.log
 *.tmp
-
-# Generated process-mining outputs; keep the directory marker
-process_mining/outputs/*
-!process_mining/outputs/.gitkeep

@@ -11,7 +11,7 @@
     {
       "type": "text",
       "id": "form-resolution-sav-help",
-      "text": "Les opérations sont simulées. Le choix alimente la passerelle de résolution du BPMN."
+      "text": "Les opérations sont simulées. Choisissez le remboursement sur portefeuille, sur le moyen initial, ou le traitement sans retour physique si returnRequired=false. En cas d’incompatibilité ou d’exception, choisissez la revue manuelle."
     },
     {
       "label": "Préférence indiquée par le client",
@@ -28,7 +28,14 @@
       "readonly": true
     },
     {
-      "label": "Mode de traitement",
+      "label": "Retour physique requis selon la validation SAV",
+      "type": "checkbox",
+      "id": "form-resolution-sav-returnRequired",
+      "key": "returnRequired",
+      "readonly": true
+    },
+    {
+      "label": "Mode de résolution simulé",
       "type": "select",
       "id": "form-resolution-sav-refundMethod",
       "key": "refundMethod",

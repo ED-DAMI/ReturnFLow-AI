@@ -1,35 +1,10 @@
-# Resume du dataset synthetique
+# Synthèse du jeu synthétique
 
-- Cas: 200
-- Evenements: 2973
-- Duree moyenne: 99.18 h
-- SLA depasse: 11/200 (5.5 %)
+Les journaux de processus sont générés par `generate_synthetic_logs.py` avec la graine fixe `42`.
 
-## Variantes
+- **Cohorte appariée :** 200 cas communs à l’AS-IS et au TO-BE, avec les mêmes scénarios et issues métier.
+- **Extensions TO-BE :** 180 cas couvrant neuf scénarios propres au modèle cible.
+- **Provenance :** cas, identifiants, activités, ressources, décisions et horodatages simulés; aucune donnée client ou opérationnelle interne de SHEIN.
+- **Interprétation :** les durées sont des hypothèses pédagogiques et ne mesurent pas la performance réelle de SHEIN.
 
-- standard_accepted: 98
-- standard_refused: 37
-- missing_information: 17
-- ai_fallback_manual: 16
-- refund_without_return: 11
-- sla_escalation: 11
-- qc_exception: 10
-
-## Motifs
-
-- SIZE_FIT: 56
-- COLOR_MISMATCH: 43
-- FABRIC_QUALITY: 36
-- SHAPE_CUT: 23
-- DEFECTIVE: 20
-- NOT_AS_DESCRIBED: 15
-- WRONG_ITEM: 7
-
-## Resolutions
-
-- refund: 81
-- exchange: 65
-- none: 37
-- repair: 17
-
-> Donnees entierement synthetiques pour usage academique.
+À chaque génération, le script remplace cette synthèse par les volumes d’événements et les durées observées dans les fichiers produits. Pour la méthode et les commandes, voir [logs/README.md](../README.md).

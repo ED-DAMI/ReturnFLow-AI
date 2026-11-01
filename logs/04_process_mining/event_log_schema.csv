@@ -1,23 +1,20 @@
 column,type,required,description
-case_id,string,yes,Identifiant du dossier RMA utilise comme case ID PM4Py
-activity,string,yes,Nom de l'activite executee
-timestamp,datetime,yes,Horodatage de l'evenement
-resource,string,yes,Acteur ou systeme responsable
-return_order_no,string,yes,Numero de retour synthetique
-order_id,string,yes,Numero de commande synthetique
-product_id,string,yes,Identifiant produit
-sku,string,yes,SKU produit
-product_category,string,yes,Categorie de vetement
-size,string,yes,Taille
-color,string,yes,Couleur
-fabric,string,yes,Matiere ou tissu
-return_reason,string,yes,Motif metier du retour
-aftersales_sub_status,integer,no,Statut rapproche de la machine d'etat SHEIN
-return_order_status,integer,no,Statut rapproche de l'API returnOrderStatus
-eligibility,string,yes,eligible/refused/pending
-resolution,string,no,refund/exchange/repair/manual/none
-ai_category,string,no,Categorie extraite par l'IA
-ai_confidence,float,no,Score synthetique de confiance
-sla_breached,boolean,yes,Depassement SLA agent
-variant,string,yes,Variante de processus synthetique
-is_synthetic,boolean,yes,Toujours true dans ce corpus
+case_id,string,yes,Identifiant du dossier; identique dans les deux versions pour la cohorte appariée
+process_version,string,yes,AS_IS ou TO_BE
+activity,string,yes,Nom exact d'une tâche visible du BPMN correspondant
+start_timestamp,datetime,yes,Début de l'activité terminée
+end_timestamp,datetime,yes,Fin de l'activité terminée
+timestamp,datetime,yes,Horodatage de fin utilisé pour l'ordre des événements PM4Py
+resource,string,yes,Client, agent SAV, entrepôt, superviseur, service ou worker simulé
+result,string,yes,Résultat de l'activité dans la simulation
+scenario,string,yes,Scénario synthétique parcouru
+comparison_group,string,yes,paired_common ou tobe_extension
+return_id,string,yes,Identifiant synthétique du dossier de retour
+order_id,string,yes,Identifiant synthétique de commande
+product_id,string,yes,Identifiant synthétique de produit
+return_reason,string,yes,Motif synthétique du retour
+eligibility,string,yes,eligible, refused ou pending
+return_required,boolean,yes,Indique si un retour physique est requis
+resolution,string,yes,shein_wallet, original_payment, returnless, manual ou none
+sla_breached,boolean,yes,Dépassement simulé du SLA de validation SAV de 24 h dans le TO-BE
+is_synthetic,boolean,yes,Toujours true dans ces journaux
