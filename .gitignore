@@ -1,5 +1,5 @@
 .venv/
 issues.bash
 .vscode 
-env 
+.env 
 
