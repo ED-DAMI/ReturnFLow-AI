@@ -81,7 +81,9 @@ Pour Camunda, renseigner `CAMUNDA_REST_URL` pour une installation locale. Avec C
 Ouvrir `camunda/returnflow_to_be.bpmn` dans Camunda Modeler. Depuis le dossier d’installation de Camunda 8 Run, démarrer le moteur local avec :
 
 ~~~powershell
+$env:JAVA_OPTS = "-Xms256m -Xmx768m -XX:MaxMetaspaceSize=256m -XX:MaxDirectMemorySize=256m"
 .\c8run.exe start --no-browser --disable-connectors
+Remove-Item Env:JAVA_OPTS
 ~~~
 
 Les connecteurs Camunda intégrés sont désactivés ici car le worker Python traite les jobs `shein-agent`. Déployer le BPMN TO-BE et les formulaires depuis Modeler après une modification, puis lancer le worker. Pour arrêter le moteur, exécuter `.\c8run.exe stop` depuis son dossier d’installation.
