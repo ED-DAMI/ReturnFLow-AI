@@ -17,6 +17,7 @@ os.environ.setdefault("OPENBLAS_NUM_THREADS", "1")
 os.environ.setdefault("TOKENIZERS_PARALLELISM", "false")
 
 from dotenv import load_dotenv
+from returnflow_ai.rag_config import RAG_SOURCE_ID
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
@@ -74,7 +75,7 @@ def create_llm() -> Any:
 
 
 def retrieve_policy(client_query: str) -> tuple[str, list[dict], list[float]]:
-    """Retrieve policy passages using local E5 embeddings and pgvector."""
+    """Retrieve passages only from the approved SHEIN return-policy summary PDF."""
     query_vector = get_embeddings_model().embed_query(f"query: {client_query}")
     import psycopg2
     from pgvector.psycopg2 import register_vector
@@ -103,13 +104,17 @@ def retrieve_policy(client_query: str) -> tuple[str, list[dict], list[float]]:
         with conn.cursor() as cur:
             cur.execute(
                 """
-                SELECT content, metadata, embedding <=> %s::vector AS distance
+                SELECT chunk_id, content, metadata, embedding <=> %s::vector AS distance
                 FROM returnflow_rag_embeddings
                 WHERE metadata->>'embedding_pipeline' = %s
+                  AND metadata->>'source_id' = %s
+                  AND metadata->>'embedding_model' = %s
+                  AND metadata ? 'page_char_start'
+                  AND metadata ? 'source_sha256'
                 ORDER BY embedding <=> %s::vector
                 LIMIT %s;
                 """,
-                (query_vector, RAG_PIPELINE_ID, query_vector, RAG_TOP_K),
+                (query_vector, RAG_PIPELINE_ID, RAG_SOURCE_ID, EMBEDDING_MODEL, query_vector, RAG_TOP_K),
             )
             rows = cur.fetchall()
     finally:
@@ -118,20 +123,30 @@ def retrieve_policy(client_query: str) -> tuple[str, list[dict], list[float]]:
     passages: list[str] = []
     sources: list[dict] = []
     scores: list[float] = []
-    for content, metadata, distance in rows:
+    for chunk_id, content, metadata, distance in rows:
         if isinstance(metadata, str):
             metadata = json.loads(metadata)
         similarity = round(1 - float(distance), 4)
         if similarity < RAG_MIN_SIMILARITY:
             continue
+        chunk_id = str(chunk_id)
         source_id = str(metadata.get("source_id", "unknown"))
         page = int(metadata.get("page", 0))
-        citation = f"{source_id}, page {page}"
+        citation = f"{source_id}, page {page}, chunk {chunk_id[:12]}"
         passages.append(f"[Source: {citation}]\n{content}")
         sources.append(
             {
+                "chunk_id": chunk_id,
                 "source_id": source_id,
                 "page": page,
+                "chunk_index": int(metadata.get("chunk_index", 0)),
+                "page_char_start": int(metadata.get("page_char_start", 0)),
+                "page_char_end": int(metadata.get("page_char_end", 0)),
+                "offset_unit": metadata.get("offset_unit"),
+                "source_sha256": metadata.get("source_sha256"),
+                "page_text_sha256": metadata.get("page_text_sha256"),
+                "chunk_sha256": metadata.get("chunk_sha256"),
+                "embedding_model": metadata.get("embedding_model", EMBEDDING_MODEL),
                 "source_type": metadata.get("source_type", "unknown"),
                 "similarity": similarity,
             }

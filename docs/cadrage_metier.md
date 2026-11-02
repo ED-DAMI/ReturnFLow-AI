@@ -35,7 +35,7 @@ La résolution intervient après la validation et l’inspection éventuelle. El
 | Entrepôt | Enregistrer la réception et inspecter l’article retourné. |
 | Responsable SAV | Traiter l’escalade créée après le délai de validation de 24 heures. |
 
-Le worker RAG utilise `intfloat/multilingual-e5-small` pour calculer localement les embeddings multilingues des règles et questions; PostgreSQL/pgvector stocke les passages et leurs vecteurs. Le chat Groq classe les demandes et rédige les réponses; il ne décide pas seul de l’éligibilité. Ces composants sont des détails d’implémentation, ni des tâches ni des acteurs BPMN. L’ingestion initiale du manifeste est décrite dans [`embeddings/README.md`](../embeddings/README.md).
+Le worker RAG utilise uniquement le PDF `rag_documents/Synthese_Politique_de_Retour_SHEIN_Maroc.pdf`. `intfloat/multilingual-e5-small` calcule localement les embeddings des passages et des questions; PostgreSQL/pgvector stocke les passages et leurs vecteurs. Le chat Groq classe les demandes et rédige les réponses; il ne décide pas seul de l’éligibilité. Ces composants sont des détails d’implémentation, ni des tâches ni des acteurs BPMN. L’ingestion et le filtrage à source unique sont décrits dans [`embeddings/README.md`](../embeddings/README.md).
 
 ## 4. Variables et décisions
 

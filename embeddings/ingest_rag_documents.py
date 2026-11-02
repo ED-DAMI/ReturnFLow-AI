@@ -26,6 +26,7 @@ from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from pgvector.psycopg2 import register_vector
 from pypdf import PdfReader
+from returnflow_ai.rag_config import RAG_SOURCE_ID
 
 
 RAG_DIR = PROJECT_ROOT / "rag_documents"
@@ -45,6 +46,11 @@ def read_manifest() -> list[dict[str, str]]:
         for row in csv.DictReader(stream):
             if row["use_for_rag"].strip().lower() != "true":
                 continue
+            if Path(row["file"]).as_posix() != RAG_SOURCE_ID:
+                raise ValueError(
+                    "Only the approved RAG PDF may be enabled: "
+                    f"{RAG_SOURCE_ID}. Found another enabled file: {row['file']}"
+                )
             path = (RAG_DIR / row["file"]).resolve()
             if not path.is_relative_to(rag_root):
                 raise ValueError(f"Manifest path escapes rag_documents/: {row['file']}")
@@ -56,6 +62,8 @@ def read_manifest() -> list[dict[str, str]]:
         raise FileNotFoundError("Missing RAG manifest files: " + ", ".join(missing))
     if not entries:
         raise ValueError("The RAG manifest contains no files enabled for indexing.")
+    if len(entries) != 1:
+        raise ValueError(f"The RAG manifest must enable exactly one PDF: {RAG_SOURCE_ID}.")
     return entries
 
 
@@ -71,31 +79,57 @@ def build_chunks(entries: list[dict[str, str]]) -> list[dict[str, Any]]:
         chunk_overlap=chunk_overlap,
         length_function=lambda text: len(tokenizer.encode(text)),
         separators=["\n\n", "\n", ". ", " ", ""],
+        add_start_index=True,
     )
     chunks: list[dict[str, Any]] = []
     for entry in entries:
         source_id = Path(entry["file"]).as_posix()
+        source_sha256 = hashlib.sha256(Path(entry["resolved_path"]).read_bytes()).hexdigest()
         reader = PdfReader(entry["resolved_path"])
         for page_index, pdf_page in enumerate(reader.pages):
             page_text = pdf_page.extract_text() or ""
             if not page_text.strip():
                 continue
+            page_text_sha256 = hashlib.sha256(page_text.encode("utf-8")).hexdigest()
             page_document = Document(page_content=page_text, metadata={"page": page_index})
+            search_from = 0
             for chunk_index, document in enumerate(splitter.split_documents([page_document])):
                 content = document.page_content.strip()
                 if not content:
                     continue
                 page = page_index + 1
+                # Map the passage to the exact pypdf-extracted page text and validate the span.
+                char_start = document.metadata.get("start_index")
+                char_start = int(char_start) if char_start is not None else -1
+                if char_start < 0 or page_text[char_start:char_start + len(content)] != content:
+                    char_start = page_text.find(content, search_from)
+                if char_start < 0 or page_text[char_start:char_start + len(content)] != content:
+                    raise ValueError(
+                        f"Could not map chunk {chunk_index} back to extracted page {page} of {source_id}."
+                    )
+                char_end = char_start + len(content)
+                search_from = char_start + 1
+                chunk_sha256 = hashlib.sha256(content.encode("utf-8")).hexdigest()
                 digest = hashlib.sha256(
-                    f"{source_id}|{page}|{chunk_index}|{content}".encode("utf-8")
+                    f"{source_sha256}|{page}|{char_start}|{char_end}|{chunk_sha256}".encode("utf-8")
                 ).hexdigest()
                 metadata = {
                     "source_id": source_id,
+                    "source_sha256": source_sha256,
                     "source_type": entry["source_type"],
                     "language": entry["language"],
                     "country": entry["country"],
                     "page": page,
                     "chunk_index": chunk_index,
+                    "page_text_sha256": page_text_sha256,
+                    "page_char_start": char_start,
+                    "page_char_end": char_end,
+                    "offset_unit": "unicode_code_points_zero_based_end_exclusive",
+                    "chunk_sha256": chunk_sha256,
+                    "chunk_token_count": len(tokenizer.encode(content)),
+                    "chunk_size_tokens": chunk_size,
+                    "chunk_overlap_tokens": chunk_overlap,
+                    "chunking_method": "recursive_character_text_splitter",
                     "embedding_pipeline": PIPELINE_ID,
                 }
                 chunks.append({"chunk_id": digest, "content": content, "metadata": metadata})
@@ -171,6 +205,10 @@ def main() -> None:
     entries = read_manifest()
     chunks = build_chunks(entries)
     model_name = os.getenv("RAG_EMBEDDING_MODEL", DEFAULT_MODEL)
+    for chunk in chunks:
+        chunk["metadata"]["embedding_model"] = model_name
+        chunk["metadata"]["embedding_dimensions"] = EMBEDDING_DIMENSIONS
+        chunk["metadata"]["embedding_normalized"] = True
     local_only = os.getenv("RAG_EMBEDDING_LOCAL_ONLY", "false").strip().casefold() in {"1", "true", "yes", "on"}
     embedding_model = HuggingFaceEmbeddings(
         model_name=model_name,
