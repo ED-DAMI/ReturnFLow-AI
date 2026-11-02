@@ -1,0 +1,33 @@
+concept:name,nb_evenements
+Return request received,200
+Order retrieved,200
+RAG policy retrieved,200
+Eligibility checked,200
+Customer notified,200
+Case closed,200
+Return reason analyzed by AI,184
+Agent validation started,152
+Return solution validated,152
+Return instructions sent,152
+Return package handed over,152
+Return package delivered,152
+Product inspected,152
+Final response generated,152
+Refund completed,81
+Refund approved,70
+Replacement approved,65
+Replacement dispatched,65
+Return rejected,37
+Refusal response generated,37
+Missing information detected,17
+Customer feedback requested,17
+Customer information received,17
+Repair handling initiated,17
+Repair completed,17
+AI analysis failed,16
+Manual return reason analysis,16
+Refund without return approved,11
+SLA 24h breached,11
+Supervisor escalation,11
+QC exception detected,10
+Platform review completed,10
