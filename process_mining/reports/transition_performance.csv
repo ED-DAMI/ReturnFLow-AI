@@ -1,0 +1,43 @@
+concept:name,activite_suivante,count,mean,median,max
+Return package handed over,Return package delivered,152,68.47083150584795,72.56569444444445,106.61
+Repair handling initiated,Repair completed,17,46.567696078431375,46.465,71.36583333333333
+Return instructions sent,Return package handed over,152,30.847710160818714,30.5875,59.860277777777775
+Agent validation started,SLA 24h breached,11,30.347297979797982,30.24,33.53527777777778
+Refund approved,Refund completed,70,12.000150793650795,11.311944444444444,23.947222222222223
+Missing information detected,Customer feedback requested,17,10.707009803921569,11.124722222222223,19.05638888888889
+Replacement approved,Replacement dispatched,65,10.140594017094017,9.706388888888888,17.921388888888888
+QC exception detected,Platform review completed,10,9.629138888888889,9.879999999999999,15.435833333333333
+Customer feedback requested,Customer information received,17,7.973839869281045,6.329444444444444,17.954444444444444
+Return package delivered,Product inspected,152,6.246149488304094,6.3190277777777775,11.875
+Agent validation started,Return solution validated,141,3.800526004728132,3.576111111111111,7.9127777777777775
+Refund without return approved,Refund completed,11,3.7424747474747475,3.0108333333333333,6.101388888888889
+SLA 24h breached,Supervisor escalation,11,0.5757575757575757,0.6166666666666667,0.9666666666666667
+Product inspected,QC exception detected,10,0.5716666666666667,0.5416666666666667,0.9833333333333333
+Platform review completed,Repair handling initiated,1,0.35,0.35,0.35
+Product inspected,Repair handling initiated,16,0.29583333333333334,0.3,0.5
+Platform review completed,Refund approved,4,0.2875,0.30833333333333335,0.38333333333333336
+Product inspected,Replacement approved,60,0.27416666666666667,0.29166666666666663,0.5
+Product inspected,Refund approved,66,0.255050505050505,0.225,0.5
+Platform review completed,Replacement approved,5,0.24333333333333332,0.18333333333333332,0.43333333333333335
+AI analysis failed,Manual return reason analysis,16,0.2375,0.2583333333333333,0.4
+Eligibility checked,Agent validation started,152,0.18706140350877193,0.2,0.3333333333333333
+Eligibility checked,Refund without return approved,11,0.10151515151515152,0.08333333333333333,0.16666666666666666
+Return solution validated,Return instructions sent,152,0.09857456140350877,0.1,0.16666666666666666
+Replacement dispatched,Final response generated,65,0.09692307692307692,0.1,0.16666666666666666
+Refund completed,Final response generated,70,0.09095238095238095,0.08333333333333333,0.16666666666666666
+Repair completed,Final response generated,17,0.08431372549019608,0.08333333333333333,0.16666666666666666
+Eligibility checked,Return rejected,37,0.08198198198198198,0.08333333333333333,0.16666666666666666
+Customer information received,Return reason analyzed by AI,17,0.06470588235294118,0.06666666666666667,0.1
+Order retrieved,AI analysis failed,16,0.06145833333333334,0.06666666666666667,0.1
+Order retrieved,Return reason analyzed by AI,167,0.05898203592814371,0.06666666666666667,0.1
+RAG policy retrieved,Eligibility checked,200,0.052000000000000005,0.05,0.08333333333333333
+Refund completed,Customer notified,11,0.05,0.05,0.08333333333333333
+Return rejected,Refusal response generated,37,0.049999999999999996,0.05,0.08333333333333333
+Return request received,Order retrieved,200,0.04875,0.05,0.08333333333333333
+Final response generated,Customer notified,152,0.04780701754385965,0.03333333333333333,0.08333333333333333
+Refusal response generated,Customer notified,37,0.04459459459459459,0.05,0.08333333333333333
+Order retrieved,Missing information detected,17,0.03627450980392157,0.03333333333333333,0.06666666666666667
+Return reason analyzed by AI,RAG policy retrieved,184,0.034329710144927535,0.03333333333333333,0.05
+Customer notified,Case closed,200,0.03241666666666667,0.03333333333333333,0.05
+Manual return reason analysis,RAG policy retrieved,16,0.03125,0.025,0.05
+Supervisor escalation,Return solution validated,11,0.0,0.0,0.0
